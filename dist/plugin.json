@@ -1,31 +1,31 @@
 {
-  "name": "Scrutinizer",
-  "id": "grafana-simple-json-datasource",
+  "name": "Scrutinizer Datasource",
+  "id": "scrutinizer-datasource",
   "type": "datasource",
 
   "partials": {
-    "config": "public/app/plugins/datasource/simplejson/partials/config.html"
+    "config": "public/app/plugins/datasource/scrutinizer-datasource/partials/config.html"
   },
 
   "metrics": true,
   "annotations": true,
 
   "info": {
-    "description": "simple json datasource",
+    "description": "Scrutinizer Datasource",
     "author": {
-      "name": "Grafana Labs",
-      "url": "https://grafana.com"
+      "name": "Brian Davenport",
+      "url": "https://plixer.com"
     },
     "logos": {
       "small": "img/plixer-logo.png",
       "large": "img/plixer-logo.png"
     },
     "links": [
-      {"name": "GitHub", "url": "https://github.com/grafana/simple-json-datasource"},
-      {"name": "MIT License", "url": "https://github.com/grafana/simple-json-datasource/blob/master/LICENSE"}
+      {"name": "GitHub", "url": "https://github.com/briandav22/scrutinizer-datasource"},
+      {"name": "MIT License", "url": "https://github.com/briandav22/scrutinizer-datasource/blob/master/LICENSE"}
     ],
-    "version": "1.4.0",
-    "updated": "2018-06-20"
+    "version": "1.0.0",
+    "updated": "2019-04-1"
   },
 
   "dependencies": {

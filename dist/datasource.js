@@ -67,7 +67,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
           this.exporters = [];
 
-          this.filters = '';
+          this.filters = "";
         }
 
         _createClass(GenericDatasource, [{
@@ -88,7 +88,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             });
 
             if (query.targets[0].target === undefined) {
-
               return this.q.when({ data: [] });
             }
 
@@ -99,16 +98,14 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             }
 
             var checkStart = query.targets.length - 1;
-
+            //make sure use has selected all of drop downs before running report
             if ((query.targets[checkStart].target !== undefined || "Select Exporter") && query.targets[checkStart].reportInterface !== "Select Interface" && query.targets[checkStart].reportDirection !== "Select Direction" && query.targets[checkStart].reportType !== "Select Report") {
               this.runReport = true;
             }
-
+            //once all drop downs are selected, run the report. 
             if (this.runReport == true) {
-
               return new Promise(function (resolve, reject) {
                 var _loop = function _loop(j) {
-
                   var intervalTime = makescrutJSON.findtimeJSON(_this.authToken, query.targets[j].reportType, //report type
                   options["range"]["from"].unix(), //start time
                   options["range"]["to"].unix(), //end time
@@ -139,16 +136,14 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                       method: "GET",
                       params: scrutinizerJSON
                     }).then(function (response) {
-
                       var formatedData = dataHandler.formatData(response.data, scrutDirection, selectedInterval);
 
                       datatoGraph.push(formatedData);
                       datatoGraph = [].concat.apply([], datatoGraph);
 
                       k++;
-
+                      //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
                       if (k === query.targets.length) {
-
                         return resolve({ data: datatoGraph });
                       }
                     });
@@ -172,7 +167,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 authToken: "" + this.authToken
               }
             }).then(function (response) {
-
               if (response.status === 200) {
                 return {
                   status: "success",
@@ -185,7 +179,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
         }, {
           key: "findInterfaces",
           value: function findInterfaces(options, scope) {
-
             var query = this.liveQuery;
 
             if (query.targets[0].target != undefined) {
@@ -231,7 +224,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
         }, {
           key: "applyFilter",
           value: function applyFilter(scope, refresh) {
-            console.log(scope);
             this.filters = scope.ctrl.target.filters;
             refresh.refresh();
           }
@@ -240,9 +232,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           value: function getExporters(query, scope) {
             var _this2 = this;
 
-            console.log(scope);
-
-            if (scope.ctrl.target.refId === "A" && query === '') {
+            if (scope.ctrl.target.refId === "A" && query === "") {
               return this.doRequest({
                 url: "" + this.url,
                 method: "GET",
@@ -264,7 +254,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 return exporterList;
               });
             } else {
-
               return this.exporters;
             }
           }
@@ -294,7 +283,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           value: function buildQueryParameters(options) {
             var _this3 = this;
 
-            console.log(options);
             options.targets = _.filter(options.targets, function (target) {
               return target.target !== "select metric";
             });
