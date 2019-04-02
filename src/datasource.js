@@ -40,7 +40,7 @@ export class GenericDatasource {
     this.runReport = false;
 
     var query = this.buildQueryParameters(options);
-
+    //save the query to this, so it can be accessed by other methods.
     this.liveQuery = query;
     query.targets = query.targets.filter(t => !t.hide);
 
@@ -64,11 +64,12 @@ export class GenericDatasource {
     ) {
       this.runReport = true;
     }
-    //once all drop downs are selected, run the report. 
+    //once all drop downs are selected, run the report.
     if (this.runReport == true) {
       return new Promise((resolve, reject) => {
         for (let j = 0; j < query.targets.length; j++) {
-          let intervalTime = makescrutJSON.findtimeJSON(
+          //grab the parameters to from the query.
+          let scrutParams = makescrutJSON.createParams(
             this.authToken,
             query.targets[j].reportType, //report type
             options["range"]["from"].unix(), //start time
@@ -76,29 +77,23 @@ export class GenericDatasource {
             query.targets[j].target, //ip address
             query.targets[j].reportDirection, //report direction
             query.targets[j].reportInterface, // exporter Interface
-            query.targets[j].reportFilters
+            query.targets[j].reportFilters // filerts
           );
+          //figure out the intervale time.
+          let intervalTime = makescrutJSON.findtimeJSON(scrutParams);
 
           this.doRequest({
             url: `${this.url}`,
             method: "GET",
             params: intervalTime
           }).then(response => {
+            //store interval here.
             let selectedInterval =
               response.data["report_object"].dataGranularity.used;
+            //set up JSON to go to Scrutinizer API
+            let scrutinizerJSON = makescrutJSON.reportJSON(scrutParams);
 
-            let scrutinizerJSON = makescrutJSON.reportJSON(
-              this.authToken,
-              query.targets[j].reportType, //report type
-              options["range"]["from"].unix(), //start time
-              options["range"]["to"].unix(), //end time
-              query.targets[j].target, //ip address
-              query.targets[j].reportDirection, //report direction
-              query.targets[j].reportInterface, // exporter Interface
-              query.targets[j].reportFilters
-            );
-
-            let scrutDirection = query.targets[j].reportDirection;
+            // let scrutDirection = query.targets[j].reportDirection;
 
             this.doRequest({
               url: `${this.url}`,
@@ -107,7 +102,7 @@ export class GenericDatasource {
             }).then(response => {
               let formatedData = dataHandler.formatData(
                 response.data,
-                scrutDirection,
+                scrutParams.reportDirection,
                 selectedInterval
               );
 
@@ -136,11 +131,21 @@ export class GenericDatasource {
       }
     }).then(response => {
       if (response.status === 200) {
-        return {
-          status: "success",
-          message: "Data source is working",
-          title: "Success"
-        };
+        if (response.data.details == "invalidToken") {
+          //alert if authToken is expired or invalid
+          return {
+            status: "failed",
+            message: `Check your API key, recevied back: ${response.data.err}`,
+            title: "Api Key Failure"
+          };
+        } else {
+          //success if everything works.
+          return {
+            status: "success",
+            message: "Data source is working",
+            title: "Success"
+          };
+        }
       }
     });
   }
@@ -149,40 +154,24 @@ export class GenericDatasource {
     let query = this.liveQuery;
 
     if (query.targets[0].target != undefined) {
-      //determins which select you have clicked on.
+      //determines which select you have clicked on.
       let selectedIP = scope.ctrl.target.target;
-      return this.doRequest({
-        url: `${this.url}`,
-        method: "GET",
-        params: {
-          rm: "status",
-          action: "get",
-          view: "topInterfaces",
-          authToken: `${this.authToken}`,
-          session_state: {
-            client_time_zone: "America/New_York",
-            order_by: [],
-            search: [
-              {
-                column: "exporter_search",
-                value: `${selectedIP}`,
-                comparison: "like",
-                data: { filterType: "multi_string" },
-                _key: `exporter_search_like_${selectedIP}`
-              }
-            ],
-            query_limit: { offset: 0, max_num_rows: 50 },
-            hostDisplayType: "dns"
-          }
-        }
-      }).then(response => {
+
+      let params = makescrutJSON.interfaceJSON(
+        this.url,
+        this.authToken,
+        selectedIP
+      );
+
+      return this.doRequest(params).then(response => {
         let data = [{ text: "All Interfaces", value: "allInterfaces" }];
-        let l = 0;
+        let i = 0;
         let jsonData = response.data;
-        for (l = 0; l < jsonData.rows.length; l++) {
+
+        for (i = 0; i < jsonData.rows.length; i++) {
           data.push({
-            value: jsonData.rows[l][5].filterDrag.searchStr,
-            text: jsonData.rows[l][5].label
+            value: jsonData.rows[i][5].filterDrag.searchStr,
+            text: jsonData.rows[i][5].label
           });
         }
 
@@ -198,15 +187,9 @@ export class GenericDatasource {
 
   getExporters(query, scope) {
     if (scope.ctrl.target.refId === "A" && query === "") {
-      return this.doRequest({
-        url: `${this.url}`,
-        method: "GET",
-        params: {
-          rm: "get_known_objects",
-          type: "devices",
-          authToken: `${this.authToken}`
-        }
-      }).then(response => {
+      let params = makescrutJSON.exporterJSON(this.url, this.authToken);
+      
+      return this.doRequest(params).then(response => {
         let exporterList = [{ text: "All Exporters", value: "allExporters" }];
         for (let i = 0; i < response.data.length; i++) {
           exporterList.push({
