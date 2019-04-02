@@ -144,6 +144,7 @@ System.register(["lodash"], function (_export, _context) {
         }, {
           key: "interfaceJSON",
           value: function interfaceJSON(url, authToken, ipAddress) {
+            //params to figure out which interfaces exist for a device
             return {
               url: url,
               method: "get",
@@ -171,6 +172,7 @@ System.register(["lodash"], function (_export, _context) {
         }, {
           key: "findtimeJSON",
           value: function findtimeJSON(scrutParams) {
+            //params to figure out which interval your in based on data you are requesting
             return {
               rm: "report_start",
               authToken: scrutParams.authToken,
@@ -193,6 +195,7 @@ System.register(["lodash"], function (_export, _context) {
         }, {
           key: "exporterJSON",
           value: function exporterJSON(url, authToken) {
+            //params to figure out which exporters are available to pick from.
             return {
               url: url,
               method: "GET",
@@ -211,10 +214,10 @@ System.register(["lodash"], function (_export, _context) {
       _export("ScrutinizerJSON", ScrutinizerJSON);
 
       _export("Handledata", Handledata = function () {
+        //scrutinizer returns graph data opposite of how grafana wants it. So we flip it here.
         function Handledata() {
           _classCallCheck(this, Handledata);
 
-          //scrutinizer returns graph data opposite of how grafana wants it. So we flip it here.
           this.rearrangeData = function (arr, oldIndex, newIndex) {
             while (oldIndex < 0) {
               old_index += arr.length;
@@ -234,13 +237,11 @@ System.register(["lodash"], function (_export, _context) {
           };
         }
 
-        //grafana wants time in millaseconds. so we multiple by 1000.
-        //we also want to return data in bits, so we device by 8
-
-
         _createClass(Handledata, [{
           key: "formatData",
           value: function formatData(scrutData, reportDirection, intervalTime) {
+            //grafana wants time in millaseconds. so we multiple by 1000.
+            //we also want to return data in bits, so we device by 8
             var datatoGraph = [];
             var graphingData = scrutData;
             var i = void 0,

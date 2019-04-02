@@ -6,13 +6,12 @@ let makescrutJSON = new ScrutinizerJSON();
 let dataHandler = new Handledata();
 
 export class GenericDatasource {
-  constructor(instanceSettings, $q, backendSrv, templateSrv, $http) {
+  constructor(instanceSettings, $q, backendSrv, templateSrv) {
     this.type = instanceSettings.type;
     this.url = instanceSettings.url + "/fcgi/scrut_fcgi.fcgi";
     this.authToken = instanceSettings.jsonData["scrutinizerKey"];
     this.name = instanceSettings.name;
     this.q = $q;
-    this.http = $http;
     this.backendSrv = backendSrv;
     this.templateSrv = templateSrv;
     this.reportOptions = reportTypes;

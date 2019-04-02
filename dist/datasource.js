@@ -44,7 +44,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
       dataHandler = new Handledata();
 
       _export("GenericDatasource", GenericDatasource = function () {
-        function GenericDatasource(instanceSettings, $q, backendSrv, templateSrv, $http) {
+        function GenericDatasource(instanceSettings, $q, backendSrv, templateSrv) {
           _classCallCheck(this, GenericDatasource);
 
           this.type = instanceSettings.type;
@@ -52,7 +52,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           this.authToken = instanceSettings.jsonData["scrutinizerKey"];
           this.name = instanceSettings.name;
           this.q = $q;
-          this.http = $http;
           this.backendSrv = backendSrv;
           this.templateSrv = templateSrv;
           this.reportOptions = reportTypes;

@@ -99,9 +99,8 @@ export class ScrutinizerJSON {
     };
   }
 
-  //queries the API with the selected exporter to find available interfaces.
-
   interfaceJSON(url, authToken, ipAddress) {
+    //params to figure out which interfaces exist for a device
     return {
       url,
       method: "get",
@@ -129,8 +128,8 @@ export class ScrutinizerJSON {
     };
   }
 
-  //queries API to figure out what interval will be used for graphing based off timeranges passed.
   findtimeJSON(scrutParams) {
+    //params to figure out which interval your in based on data you are requesting
     return {
       rm: "report_start",
       authToken: scrutParams.authToken,
@@ -152,6 +151,7 @@ export class ScrutinizerJSON {
   }
 
   exporterJSON(url, authToken) {
+    //params to figure out which exporters are available to pick from.
     return {
       url,
       method: "GET",
@@ -164,8 +164,8 @@ export class ScrutinizerJSON {
   }
 }
 export class Handledata {
+  //scrutinizer returns graph data opposite of how grafana wants it. So we flip it here.
   constructor() {
-    //scrutinizer returns graph data opposite of how grafana wants it. So we flip it here.
     this.rearrangeData = (arr, oldIndex, newIndex) => {
       while (oldIndex < 0) {
         old_index += arr.length;
@@ -185,9 +185,9 @@ export class Handledata {
     };
   }
 
-  //grafana wants time in millaseconds. so we multiple by 1000.
-  //we also want to return data in bits, so we device by 8
   formatData(scrutData, reportDirection, intervalTime) {
+    //grafana wants time in millaseconds. so we multiple by 1000.
+    //we also want to return data in bits, so we device by 8
     let datatoGraph = [];
     let graphingData = scrutData;
     let i,
