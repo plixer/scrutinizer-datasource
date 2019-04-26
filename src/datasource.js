@@ -39,6 +39,7 @@ export class GenericDatasource {
     this.runReport = false;
 
     var query = this.buildQueryParameters(options);
+    console.log(query)
     //save the query to this, so it can be accessed by other methods.
     this.liveQuery = query;
     query.targets = query.targets.filter(t => !t.hide);
@@ -81,11 +82,14 @@ export class GenericDatasource {
           //figure out the intervale time.
           let intervalTime = makescrutJSON.findtimeJSON(scrutParams);
 
+          console.log(scrutParams)
+
           this.doRequest({
             url: `${this.url}`,
             method: "GET",
             params: intervalTime
           }).then(response => {
+            console.log(response)
             //store interval here.
             let selectedInterval =
               response.data["report_object"].dataGranularity.used;
@@ -156,26 +160,49 @@ export class GenericDatasource {
       //determines which select you have clicked on.
       let selectedIP = scope.ctrl.target.target;
 
-      let params = makescrutJSON.interfaceJSON(
-        this.url,
-        this.authToken,
-        selectedIP
-      );
+      if(selectedIP === 'deviceGroup'){
+        let params = makescrutJSON.groupJSON(
+          this.url,
+          this.authToken
+        )
 
-      return this.doRequest(params).then(response => {
-        let data = [{ text: "All Interfaces", value: "allInterfaces" }];
-        let i = 0;
-        let jsonData = response.data;
+        return this.doRequest(params).then(response=>{
+          let i = 0
+          
+          let jsonData = response.data;
+          let data = [];
+          for (i=0; i < jsonData.length; i++){
+            data.push({
+              value:jsonData[i]['id'].toString(),
+              text:jsonData[i]['name']
+            })
 
-        for (i = 0; i < jsonData.rows.length; i++) {
-          data.push({
-            value: jsonData.rows[i][5].filterDrag.searchStr,
-            text: jsonData.rows[i][5].label
-          });
-        }
+          }
 
-        return data;
-      });
+          return data;
+        })
+      }else{
+      
+        let params = makescrutJSON.interfaceJSON(
+          this.url,
+          this.authToken,
+          selectedIP
+        );
+
+        return this.doRequest(params).then(response => {
+          let data = [{ text: "All Interfaces", value: "allInterfaces" }];
+          let i = 0;
+          let jsonData = response.data;
+
+          for (i = 0; i < jsonData.rows.length; i++) {
+            data.push({
+              value: jsonData.rows[i][5].filterDrag.searchStr,
+              text: jsonData.rows[i][5].label
+            });
+          }
+
+          return data;
+        });}
     }
   }
 
@@ -189,7 +216,9 @@ export class GenericDatasource {
       let params = makescrutJSON.exporterJSON(this.url, this.authToken);
       
       return this.doRequest(params).then(response => {
-        let exporterList = [{ text: "All Exporters", value: "allExporters" }];
+        let exporterList = [
+          { text: "All Exporters", value: "allExporters" },
+          { text: "Device Group", value: "deviceGroup" }];
         for (let i = 0; i < response.data.length; i++) {
           exporterList.push({
             text: response.data[i]["name"],

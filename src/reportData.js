@@ -19,7 +19,7 @@ export class ScrutinizerJSON {
     if (expInterface === "allInterfaces") {
       exporterInterface = "_ALL";
     } else {
-      exporterInterface = "-" + expInterface;
+      exporterInterface = expInterface;
     }
 
     //  if user wants all devices, then they are defualted to all interfaces
@@ -27,7 +27,13 @@ export class ScrutinizerJSON {
       scrutFilters = {
         sdfDips_0: `in_GROUP_ALL`
       };
-    } else {
+    } else if (ipAddress === "deviceGroup") {
+      scrutFilters = {
+        sdfDips_0: `in_GROUP_${exporterInterface}`
+      };
+    } 
+    
+    else {
       // if user wants a specific device, they can either have ALL interfaces, or a specific interface
       if (exporterInterface === "_ALL") {
         scrutFilters = {
@@ -35,7 +41,7 @@ export class ScrutinizerJSON {
         };
       } else {
         scrutFilters = {
-          sdfDips_0: `in_${ipAddress}_${ipAddress}${exporterInterface}`
+          sdfDips_0: `in_${ipAddress}_${ipAddress}-${exporterInterface}`
         };
       }
     }
@@ -161,6 +167,18 @@ export class ScrutinizerJSON {
         authToken
       }
     };
+  }
+
+  groupJSON(url,authToken){
+    return {
+      url,
+      method:"GET",
+      params: {
+        rm:"get_known_objects",
+        type:"deviceGroups",
+        authToken
+      }
+    }
   }
 }
 export class Handledata {
