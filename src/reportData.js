@@ -85,6 +85,7 @@ export class ScrutinizerJSON {
           start: `${scrutParams.startTime}`,
           end: `${scrutParams.endTime}`
         },
+        orderBy: "sum_octetdeltacount",
         filters: scrutParams.scrutFilters,
         dataGranularity: {
           selected: "auto"

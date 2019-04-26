@@ -128,6 +128,7 @@ System.register(["lodash"], function (_export, _context) {
                   start: "" + scrutParams.startTime,
                   end: "" + scrutParams.endTime
                 },
+                orderBy: "sum_octetdeltacount",
                 filters: scrutParams.scrutFilters,
                 dataGranularity: {
                   selected: "auto"
