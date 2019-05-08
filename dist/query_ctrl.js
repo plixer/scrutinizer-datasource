@@ -69,6 +69,7 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           _this.scope = $scope;
           _this.target.target = _this.target.target || 'Select Exporter';
           _this.target.report = _this.target.report || 'Select Report';
+          _this.target.display = _this.target.display || 'Bits / Percent';
           _this.target.direction = _this.target.direction || 'Select Direction';
           _this.target.interface = _this.target.interface || 'Select Interface';
           _this.target.type = _this.target.type || 'timeserie';
@@ -104,6 +105,12 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           value: function getReports(query) {
 
             return this.datasource.reportOptions;
+          }
+        }, {
+          key: 'getDisplay',
+          value: function getDisplay(query) {
+
+            return this.datasource.displayOptions;
           }
         }, {
           key: 'getDirection',

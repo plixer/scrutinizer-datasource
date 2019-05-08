@@ -3,7 +3,7 @@
 System.register([], function (_export, _context) {
   "use strict";
 
-  var reportTypes, reportDirection;
+  var reportTypes, reportDirection, displayOptions;
   return {
     setters: [],
     execute: function () {
@@ -22,6 +22,9 @@ System.register([], function (_export, _context) {
       }, {
         text: "Destination Hosts",
         value: "dstHosts"
+      }, {
+        text: "Interface Utilization",
+        value: "interfaces"
       }]);
 
       _export("reportTypes", reportTypes);
@@ -35,6 +38,16 @@ System.register([], function (_export, _context) {
       }]);
 
       _export("reportDirection", reportDirection);
+
+      _export("displayOptions", displayOptions = [{
+        text: "Bits Per Second",
+        value: "bits"
+      }, {
+        text: "Percent Utilized",
+        value: "percent"
+      }]);
+
+      _export("displayOptions", displayOptions);
     }
   };
 });

@@ -56,9 +56,10 @@ System.register(["lodash"], function (_export, _context) {
 
         _createClass(ScrutinizerJSON, [{
           key: "createParams",
-          value: function createParams(authToken, reportType, startTime, endTime, ipAddress, reportDirection, expInterface, reportFilter) {
+          value: function createParams(authToken, reportType, startTime, endTime, ipAddress, reportDirection, expInterface, reportFilter, reportDisplay) {
             var exporterInterface = void 0;
             var scrutFilters = void 0;
+            var scrutDisplay = void 0;
 
             if (expInterface === "allInterfaces") {
               exporterInterface = "_ALL";
@@ -99,6 +100,12 @@ System.register(["lodash"], function (_export, _context) {
               }
             }
 
+            if (reportDisplay === "percent") {
+              scrutDisplay = { display: "custom_interfacepercent" };
+            } else {
+              scrutDisplay = { display: "sum_octetdeltacount" };
+            }
+
             return {
               authToken: authToken,
               reportType: reportType,
@@ -107,7 +114,8 @@ System.register(["lodash"], function (_export, _context) {
               ipAddress: ipAddress,
               reportDirection: reportDirection,
               expInterface: exporterInterface,
-              scrutFilters: scrutFilters
+              scrutFilters: scrutFilters,
+              scrutDisplay: scrutDisplay
             };
           }
         }, {
@@ -128,7 +136,7 @@ System.register(["lodash"], function (_export, _context) {
                   start: "" + scrutParams.startTime,
                   end: "" + scrutParams.endTime
                 },
-                orderBy: "sum_octetdeltacount",
+                orderBy: scrutParams.scrutDisplay["display"],
                 filters: scrutParams.scrutFilters,
                 dataGranularity: {
                   selected: "auto"
@@ -257,7 +265,16 @@ System.register(["lodash"], function (_export, _context) {
 
         _createClass(Handledata, [{
           key: "formatData",
-          value: function formatData(scrutData, reportDirection, intervalTime) {
+          value: function formatData(scrutData, scrutParams, intervalTime) {
+            var displayValue = void 0;
+
+            if (scrutParams.scrutDisplay["display"] === "custom_interfacepercent") {
+              displayValue = "percent";
+            } else {
+              displayValue = "bits";
+            }
+
+            var reportDirection = scrutParams.reportDirection;
             //grafana wants time in millaseconds. so we multiple by 1000.
             //we also want to return data in bits, so we device by 8
             var datatoGraph = [];
@@ -266,19 +283,49 @@ System.register(["lodash"], function (_export, _context) {
                 j = 0;
             var graphData = graphingData["report"]["graph"]["pie"][reportDirection];
             var tableData = graphingData["report"]["graph"]["timeseries"][reportDirection];
-            for (i = 0; i < tableData.length; i++) {
-              for (j = 0; j < tableData[i].length; j++) {
-                tableData[i][j][0] = tableData[i][j][0] * 1000;
-                tableData[i][j][1] = tableData[i][j][1] * 8 / (intervalTime * 60);
-                this.rearrangeData(tableData[i][j], 0, 1);
+            console.log(tableData);
+            if (displayValue === "bits") {
+              for (i = 0; i < tableData.length; i++) {
+                for (j = 0; j < tableData[i].length; j++) {
+                  tableData[i][j][0] = tableData[i][j][0] * 1000;
+                  tableData[i][j][1] = tableData[i][j][1] * 8 / (intervalTime * 60);
+                  this.rearrangeData(tableData[i][j], 0, 1);
+                }
+              }
+            } else {
+              for (i = 0; i < tableData.length; i++) {
+                for (j = 0; j < tableData[i].length; j++) {
+                  tableData[i][j][0] = tableData[i][j][0] * 1000;
+                  this.rearrangeData(tableData[i][j], 0, 1);
+                }
               }
             }
 
             for (i = 0; i < graphData.length; i++) {
-              datatoGraph.push({
-                target: graphData[i]["label"],
-                datapoints: tableData[i]
-              });
+              var interfaceId = void 0;
+              var interfaceDesc = void 0;
+
+              if (scrutParams["reportType"] === "interfaces") {
+                if (scrutParams["reportDirection"] === "inbound") {
+                  interfaceId = "Inbound Interface";
+                  interfaceDesc = "Inbound";
+                } else {
+                  interfaceId = "Outbound Interface";
+                  interfaceDesc = "Outbound";
+                }
+
+                if (graphData[i]["label"] != "Other") {
+                  datatoGraph.push({
+                    target: interfaceDesc + "--" + graphData[i]["tooltip"][1][interfaceId],
+                    datapoints: tableData[i]
+                  });
+                }
+              } else {
+                datatoGraph.push({
+                  target: graphData[i]["label"],
+                  datapoints: tableData[i]
+                });
+              }
             }
 
             return datatoGraph;
