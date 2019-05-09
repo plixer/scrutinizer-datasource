@@ -125,6 +125,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                     url: "" + _this.url,
                     method: "GET",
                     params: intervalTime
+
                   }).then(function (response) {
 
                     //store interval here.
@@ -137,6 +138,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                       method: "GET",
                       params: scrutinizerJSON
                     }).then(function (response) {
+
                       var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval);
 
                       datatoGraph.push(formatedData);
@@ -277,7 +279,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           value: function buildQueryParameters(options) {
             var _this3 = this;
 
-            console.log(options);
             options.targets = _.filter(options.targets, function (target) {
               return target.target !== "select metric";
             });

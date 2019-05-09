@@ -243,7 +243,8 @@ export class Handledata {
       //since interface reporting uses the total tables, we dont need to math it.
       for (i = 0; i < tableData.length; i++) {
         for (j = 0; j < tableData[i].length; j++) {
-          tableData[i][j][0] = tableData[i][j][0] * 1000;          
+          tableData[i][j][0] = tableData[i][j][0] * 1000;
+          tableData[i][j][1] = Math.round(tableData[i][j][1])         
           this.rearrangeData(tableData[i][j], 0, 1);
         }
       }

@@ -36,7 +36,7 @@ export class GenericDatasource {
   query(options) {
     let k = 0;
     let datatoGraph = [];
-
+    
     this.runReport = false;
 
     var query = this.buildQueryParameters(options);
@@ -90,6 +90,7 @@ export class GenericDatasource {
             url: `${this.url}`,
             method: "GET",
             params: intervalTime
+
           }).then(response => {
             
             //store interval here.
@@ -105,6 +106,7 @@ export class GenericDatasource {
               method: "GET",
               params: scrutinizerJSON
             }).then(response => {
+              
               let formatedData = dataHandler.formatData(
                 response.data,
                 scrutParams,

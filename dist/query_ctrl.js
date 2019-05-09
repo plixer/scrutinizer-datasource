@@ -61,6 +61,7 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
       _export('GenericDatasourceQueryCtrl', GenericDatasourceQueryCtrl = function (_QueryCtrl) {
         _inherits(GenericDatasourceQueryCtrl, _QueryCtrl);
 
+        //creates the link between dropdowns and the datasource
         function GenericDatasourceQueryCtrl($scope, $injector) {
           _classCallCheck(this, GenericDatasourceQueryCtrl);
 
@@ -77,6 +78,8 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
 
           return _this;
         }
+        //each drop down gets a function that is called by the datasource. 
+
 
         _createClass(GenericDatasourceQueryCtrl, [{
           key: 'getOptions',

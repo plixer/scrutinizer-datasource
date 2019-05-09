@@ -99,7 +99,7 @@ System.register(["lodash"], function (_export, _context) {
                 }
               }
             }
-
+            //percent vs bits check, these are passed into to the JSON for scrutinizer.
             if (reportDisplay === "percent") {
               scrutDisplay = { display: "custom_interfacepercent" };
             } else {
@@ -283,7 +283,7 @@ System.register(["lodash"], function (_export, _context) {
                 j = 0;
             var graphData = graphingData["report"]["graph"]["pie"][reportDirection];
             var tableData = graphingData["report"]["graph"]["timeseries"][reportDirection];
-            console.log(tableData);
+            //if user is selecting bits, we need to multiple by 8, we also need to use the interval time.
             if (displayValue === "bits") {
               for (i = 0; i < tableData.length; i++) {
                 for (j = 0; j < tableData[i].length; j++) {
@@ -293,9 +293,11 @@ System.register(["lodash"], function (_export, _context) {
                 }
               }
             } else {
+              //since interface reporting uses the total tables, we dont need to math it.
               for (i = 0; i < tableData.length; i++) {
                 for (j = 0; j < tableData[i].length; j++) {
                   tableData[i][j][0] = tableData[i][j][0] * 1000;
+                  tableData[i][j][1] = Math.round(tableData[i][j][1]);
                   this.rearrangeData(tableData[i][j], 0, 1);
                 }
               }
@@ -313,7 +315,10 @@ System.register(["lodash"], function (_export, _context) {
                   interfaceId = "Outbound Interface";
                   interfaceDesc = "Outbound";
                 }
-
+                //scrutinizer returns a small amout of "other traffic" for interface reporting
+                //this has to do with the relationship between totals and conversations. 
+                //we don't need this data, so we toss it out. It makes it do we can use SingleStat 
+                //and Guage visualizations for interfaces, which is nice. 
                 if (graphData[i]["label"] != "Other") {
                   datatoGraph.push({
                     target: interfaceDesc + "--" + graphData[i]["tooltip"][1][interfaceId],
