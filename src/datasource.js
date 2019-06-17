@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { ScrutinizerJSON, Handledata } from "./reportData";
-import { reportTypes, reportDirection } from "./reportTypes";
+import { reportTypes, reportDirection, displayOptions } from "./reportTypes";
 
 let makescrutJSON = new ScrutinizerJSON();
 let dataHandler = new Handledata();
@@ -16,6 +16,7 @@ export class GenericDatasource {
     this.templateSrv = templateSrv;
     this.reportOptions = reportTypes;
     this.reportDirections = reportDirection;
+    this.displayOptions = displayOptions;
     this.withCredentials = instanceSettings.withCredentials;
     this.liveQuery = "";
     this.headers = { "Content-Type": "application/json" };
@@ -35,10 +36,11 @@ export class GenericDatasource {
   query(options) {
     let k = 0;
     let datatoGraph = [];
-
+    
     this.runReport = false;
 
     var query = this.buildQueryParameters(options);
+    
     //save the query to this, so it can be accessed by other methods.
     this.liveQuery = query;
     query.targets = query.targets.filter(t => !t.hide);
@@ -76,32 +78,38 @@ export class GenericDatasource {
             query.targets[j].target, //ip address
             query.targets[j].reportDirection, //report direction
             query.targets[j].reportInterface, // exporter Interface
-            query.targets[j].reportFilters // filerts
+            query.targets[j].reportFilters, // filerts
+            query.targets[j].reportDisplay // bits or percent
           );
           //figure out the intervale time.
           let intervalTime = makescrutJSON.findtimeJSON(scrutParams);
+
+          
 
           this.doRequest({
             url: `${this.url}`,
             method: "GET",
             params: intervalTime
+
           }).then(response => {
+            
             //store interval here.
             let selectedInterval =
               response.data["report_object"].dataGranularity.used;
             //set up JSON to go to Scrutinizer API
             let scrutinizerJSON = makescrutJSON.reportJSON(scrutParams);
 
-            // let scrutDirection = query.targets[j].reportDirection;
+            
 
             this.doRequest({
               url: `${this.url}`,
               method: "GET",
               params: scrutinizerJSON
             }).then(response => {
+              
               let formatedData = dataHandler.formatData(
                 response.data,
-                scrutParams.reportDirection,
+                scrutParams,
                 selectedInterval
               );
 
@@ -174,8 +182,54 @@ export class GenericDatasource {
             });
           }
 
+<<<<<<< HEAD
           return data;
         });
+=======
+      if(selectedIP === 'deviceGroup'){
+        let params = makescrutJSON.groupJSON(
+          this.url,
+          this.authToken
+        )
+        //if user selects Device Group we return a list of all groups available.
+        return this.doRequest(params).then(response=>{
+          let i = 0
+          
+          let jsonData = response.data;
+          let data = [];
+          for (i=0; i < jsonData.length; i++){
+            data.push({
+              value:jsonData[i]['id'].toString(),
+              text:jsonData[i]['name']
+            })
+
+          }
+
+          return data;
+        })
+      }else{
+        //otherwise we figre out what interfaces are available for selected device. 
+        let params = makescrutJSON.interfaceJSON(
+          this.url,
+          this.authToken,
+          selectedIP
+        );
+
+        return this.doRequest(params).then(response => {
+          let data = [{ text: "All Interfaces", value: "allInterfaces" }];
+          let i = 0;
+          let jsonData = response.data;
+
+          for (i = 0; i < jsonData.rows.length; i++) {
+            data.push({
+              value: jsonData.rows[i][5].filterDrag.searchStr,
+              text: jsonData.rows[i][5].label
+            });
+          }
+
+          return data;
+        });}
+>>>>>>> 988a1c1dc9ea288234d992bca556483b2468a965
     }
   }
 
@@ -183,7 +237,7 @@ export class GenericDatasource {
     this.filters = scope.ctrl.target.filters;
     refresh.refresh();
   }
-
+  //gets all exporters available. Will use DNS resolve by default and fail back to IP of exporter.
   getExporters(query, scope) {
     if (scope.ctrl.target.refId === "A" && query === "") {
       let params = makescrutJSON.exporterJSON(this.url, this.authToken);
@@ -207,17 +261,6 @@ export class GenericDatasource {
     }
   }
 
-  mapToTextValue(result) {
-    return _.map(result.data, (d, i) => {
-      if (d && d.text && d.value) {
-        return { text: d.text, value: d.value };
-      } else if (_.isObject(d)) {
-        return { text: d, value: i };
-      }
-
-      return { text: d, value: d };
-    });
-  }
 
   doRequest(options) {
     options.withCredentials = this.withCredentials;
@@ -226,12 +269,16 @@ export class GenericDatasource {
     return this.backendSrv.datasourceRequest(options);
   }
 
+  //function from simplejsondatasource, used to take values from drop downs and add to query.
+  //When adding a new dropdown you need to update this function. 
   buildQueryParameters(options) {
+    
     options.targets = _.filter(options.targets, target => {
       return target.target !== "select metric";
     });
 
     var targets = _.map(options.targets, target => {
+      
       return {
         target: this.templateSrv.replace(
           target.target,
@@ -262,6 +309,12 @@ export class GenericDatasource {
 
         reportFilters: this.templateSrv.replace(
           target.filters || "No Filter",
+          options.scopedVars,
+          "regex"
+        ),
+
+          reportDisplay: this.templateSrv.replace(
+          target.display || "No Display",
           options.scopedVars,
           "regex"
         )

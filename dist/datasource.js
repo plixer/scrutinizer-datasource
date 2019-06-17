@@ -3,7 +3,7 @@
 System.register(["lodash", "./reportData", "./reportTypes"], function (_export, _context) {
   "use strict";
 
-  var _, ScrutinizerJSON, Handledata, reportTypes, reportDirection, _createClass, makescrutJSON, dataHandler, GenericDatasource;
+  var _, ScrutinizerJSON, Handledata, reportTypes, reportDirection, displayOptions, _createClass, makescrutJSON, dataHandler, GenericDatasource;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -20,6 +20,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
     }, function (_reportTypes) {
       reportTypes = _reportTypes.reportTypes;
       reportDirection = _reportTypes.reportDirection;
+      displayOptions = _reportTypes.displayOptions;
     }],
     execute: function () {
       _createClass = function () {
@@ -56,6 +57,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           this.templateSrv = templateSrv;
           this.reportOptions = reportTypes;
           this.reportDirections = reportDirection;
+          this.displayOptions = displayOptions;
           this.withCredentials = instanceSettings.withCredentials;
           this.liveQuery = "";
           this.headers = { "Content-Type": "application/json" };
@@ -80,6 +82,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             this.runReport = false;
 
             var query = this.buildQueryParameters(options);
+
             //save the query to this, so it can be accessed by other methods.
             this.liveQuery = query;
             query.targets = query.targets.filter(function (t) {
@@ -112,7 +115,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                   query.targets[j].target, //ip address
                   query.targets[j].reportDirection, //report direction
                   query.targets[j].reportInterface, // exporter Interface
-                  query.targets[j].reportFilters // filerts
+                  query.targets[j].reportFilters, // filerts
+                  query.targets[j].reportDisplay // bits or percent
                   );
                   //figure out the intervale time.
                   var intervalTime = makescrutJSON.findtimeJSON(scrutParams);
@@ -121,20 +125,21 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                     url: "" + _this.url,
                     method: "GET",
                     params: intervalTime
+
                   }).then(function (response) {
+
                     //store interval here.
                     var selectedInterval = response.data["report_object"].dataGranularity.used;
                     //set up JSON to go to Scrutinizer API
                     var scrutinizerJSON = makescrutJSON.reportJSON(scrutParams);
-
-                    // let scrutDirection = query.targets[j].reportDirection;
 
                     _this.doRequest({
                       url: "" + _this.url,
                       method: "GET",
                       params: scrutinizerJSON
                     }).then(function (response) {
-                      var formatedData = dataHandler.formatData(response.data, scrutParams.reportDirection, selectedInterval);
+
+                      var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval);
 
                       datatoGraph.push(formatedData);
                       datatoGraph = [].concat.apply([], datatoGraph);
@@ -193,22 +198,42 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
               //determines which select you have clicked on.
               var selectedIP = scope.ctrl.target.target;
 
-              var params = makescrutJSON.interfaceJSON(this.url, this.authToken, selectedIP);
+              if (selectedIP === 'deviceGroup') {
+                var params = makescrutJSON.groupJSON(this.url, this.authToken);
+                //if user selects Device Group we return a list of all groups available.
+                return this.doRequest(params).then(function (response) {
+                  var i = 0;
 
-              return this.doRequest(params).then(function (response) {
-                var data = [{ text: "All Interfaces", value: "allInterfaces" }];
-                var i = 0;
-                var jsonData = response.data;
+                  var jsonData = response.data;
+                  var data = [];
+                  for (i = 0; i < jsonData.length; i++) {
+                    data.push({
+                      value: jsonData[i]['id'].toString(),
+                      text: jsonData[i]['name']
+                    });
+                  }
 
-                for (i = 0; i < jsonData.rows.length; i++) {
-                  data.push({
-                    value: jsonData.rows[i][5].filterDrag.searchStr,
-                    text: jsonData.rows[i][5].label
-                  });
-                }
+                  return data;
+                });
+              } else {
+                //otherwise we figre out what interfaces are available for selected device. 
+                var _params = makescrutJSON.interfaceJSON(this.url, this.authToken, selectedIP);
 
-                return data;
-              });
+                return this.doRequest(_params).then(function (response) {
+                  var data = [{ text: "All Interfaces", value: "allInterfaces" }];
+                  var i = 0;
+                  var jsonData = response.data;
+
+                  for (i = 0; i < jsonData.rows.length; i++) {
+                    data.push({
+                      value: jsonData.rows[i][5].filterDrag.searchStr,
+                      text: jsonData.rows[i][5].label
+                    });
+                  }
+
+                  return data;
+                });
+              }
             }
           }
         }, {
@@ -226,7 +251,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
               var params = makescrutJSON.exporterJSON(this.url, this.authToken);
 
               return this.doRequest(params).then(function (response) {
-                var exporterList = [{ text: "All Exporters", value: "allExporters" }];
+                var exporterList = [{ text: "All Exporters", value: "allExporters" }, { text: "Device Group", value: "deviceGroup" }];
                 for (var i = 0; i < response.data.length; i++) {
                   exporterList.push({
                     text: response.data[i]["name"],
@@ -240,19 +265,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             } else {
               return this.exporters;
             }
-          }
-        }, {
-          key: "mapToTextValue",
-          value: function mapToTextValue(result) {
-            return _.map(result.data, function (d, i) {
-              if (d && d.text && d.value) {
-                return { text: d.text, value: d.value };
-              } else if (_.isObject(d)) {
-                return { text: d, value: i };
-              }
-
-              return { text: d, value: d };
-            });
           }
         }, {
           key: "doRequest",
@@ -272,6 +284,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             });
 
             var targets = _.map(options.targets, function (target) {
+
               return {
                 target: _this3.templateSrv.replace(target.target, options.scopedVars, "regex"),
                 refId: target.refId,
@@ -284,7 +297,9 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
                 reportInterface: _this3.templateSrv.replace(target.interface || "Select Interface", options.scopedVars, "regex"),
 
-                reportFilters: _this3.templateSrv.replace(target.filters || "No Filter", options.scopedVars, "regex")
+                reportFilters: _this3.templateSrv.replace(target.filters || "No Filter", options.scopedVars, "regex"),
+
+                reportDisplay: _this3.templateSrv.replace(target.display || "No Display", options.scopedVars, "regex")
               };
             });
 

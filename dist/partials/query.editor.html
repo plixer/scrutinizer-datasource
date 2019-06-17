@@ -46,6 +46,19 @@
         </gf-form-dropdown>
         </div>
       </div>
+
+
+
+      <div ng-if="ctrl.target.report === 'interfaces'">
+        <div class="gf-form">
+          <gf-form-dropdown model="ctrl.target.display"
+            allow-custom="true"
+            lookup-text="true"
+            get-options="ctrl.getDisplay($query)"
+            on-change="ctrl.onChangeInternal()">
+        </gf-form-dropdown>
+        </div>
+      </div> 
     
       <div class="gf-form" ng-if="ctrl.target.rawQuery">
         <textarea class="gf-form-input" rows="5" ng-model="ctrl.target.direction" spellcheck="false" ng-blur="ctrl.onChangeInternal()" 

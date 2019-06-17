@@ -11,15 +11,17 @@ export class ScrutinizerJSON {
     ipAddress,
     reportDirection,
     expInterface,
-    reportFilter
+    reportFilter,
+    reportDisplay
   ) {
     let exporterInterface;
     let scrutFilters;
+    let scrutDisplay;
 
     if (expInterface === "allInterfaces") {
       exporterInterface = "_ALL";
     } else {
-      exporterInterface = "-" + expInterface;
+      exporterInterface = expInterface;
     }
 
     //  if user wants all devices, then they are defualted to all interfaces
@@ -31,9 +33,13 @@ export class ScrutinizerJSON {
       scrutFilters = {
         sdfDips_0: `in_GROUP_${exporterInterface}`
       };
+<<<<<<< HEAD
     } 
     
     else {
+=======
+    } else {
+>>>>>>> 988a1c1dc9ea288234d992bca556483b2468a965
       // if user wants a specific device, they can either have ALL interfaces, or a specific interface
       if (exporterInterface === "_ALL") {
         scrutFilters = {
@@ -41,7 +47,7 @@ export class ScrutinizerJSON {
         };
       } else {
         scrutFilters = {
-          sdfDips_0: `in_${ipAddress}_${ipAddress}${exporterInterface}`
+          sdfDips_0: `in_${ipAddress}_${ipAddress}-${exporterInterface}`
         };
       }
     }
@@ -56,6 +62,12 @@ export class ScrutinizerJSON {
         }
       }
     }
+    //percent vs bits check, these are passed into to the JSON for scrutinizer.
+    if (reportDisplay === "percent") {
+      scrutDisplay = { display: "custom_interfacepercent" };
+    } else {
+      scrutDisplay = { display: "sum_octetdeltacount" };
+    }
 
     return {
       authToken,
@@ -65,7 +77,8 @@ export class ScrutinizerJSON {
       ipAddress,
       reportDirection,
       expInterface: exporterInterface,
-      scrutFilters
+      scrutFilters,
+      scrutDisplay
     };
   }
 
@@ -85,6 +98,7 @@ export class ScrutinizerJSON {
           start: `${scrutParams.startTime}`,
           end: `${scrutParams.endTime}`
         },
+        orderBy: scrutParams.scrutDisplay["display"],
         filters: scrutParams.scrutFilters,
         dataGranularity: {
           selected: "auto"
@@ -169,6 +183,7 @@ export class ScrutinizerJSON {
     };
   }
 
+<<<<<<< HEAD
   groupJSON(url,authToken){
     return {
       url,
@@ -179,6 +194,18 @@ export class ScrutinizerJSON {
         authToken
       }
     }
+=======
+  groupJSON(url, authToken) {
+    return {
+      url,
+      method: "GET",
+      params: {
+        rm: "get_known_objects",
+        type: "deviceGroups",
+        authToken
+      }
+    };
+>>>>>>> 988a1c1dc9ea288234d992bca556483b2468a965
   }
 }
 export class Handledata {
@@ -203,7 +230,16 @@ export class Handledata {
     };
   }
 
-  formatData(scrutData, reportDirection, intervalTime) {
+  formatData(scrutData, scrutParams, intervalTime) {
+    let displayValue;
+
+    if (scrutParams.scrutDisplay["display"] === "custom_interfacepercent") {
+      displayValue = "percent";
+    } else {
+      displayValue = "bits";
+    }
+
+    let reportDirection = scrutParams.reportDirection;
     //grafana wants time in millaseconds. so we multiple by 1000.
     //we also want to return data in bits, so we device by 8
     let datatoGraph = [];
@@ -213,19 +249,55 @@ export class Handledata {
     let graphData = graphingData["report"]["graph"]["pie"][reportDirection];
     let tableData =
       graphingData["report"]["graph"]["timeseries"][reportDirection];
-    for (i = 0; i < tableData.length; i++) {
-      for (j = 0; j < tableData[i].length; j++) {
-        tableData[i][j][0] = tableData[i][j][0] * 1000;
-        tableData[i][j][1] = (tableData[i][j][1] * 8) / (intervalTime * 60);
-        this.rearrangeData(tableData[i][j], 0, 1);
+    //if user is selecting bits, we need to multiple by 8, we also need to use the interval time.
+    if (displayValue === "bits") {
+      for (i = 0; i < tableData.length; i++) {
+        for (j = 0; j < tableData[i].length; j++) {
+          tableData[i][j][0] = tableData[i][j][0] * 1000;
+          tableData[i][j][1] = (tableData[i][j][1] * 8) / (intervalTime * 60);
+          this.rearrangeData(tableData[i][j], 0, 1);
+        }
+      }
+    } else {
+      //since interface reporting uses the total tables, we dont need to math it.
+      for (i = 0; i < tableData.length; i++) {
+        for (j = 0; j < tableData[i].length; j++) {
+          tableData[i][j][0] = tableData[i][j][0] * 1000;
+          tableData[i][j][1] = Math.round(tableData[i][j][1])         
+          this.rearrangeData(tableData[i][j], 0, 1);
+        }
       }
     }
 
     for (i = 0; i < graphData.length; i++) {
-      datatoGraph.push({
-        target: graphData[i]["label"],
-        datapoints: tableData[i]
-      });
+      let interfaceId;
+      let interfaceDesc;
+
+      if (scrutParams["reportType"] === "interfaces") {
+        if (scrutParams["reportDirection"] === "inbound") {
+          interfaceId = "Inbound Interface";
+          interfaceDesc = "Inbound";
+        } else {
+          interfaceId = "Outbound Interface";
+          interfaceDesc = "Outbound";
+        }
+        //scrutinizer returns a small amout of "other traffic" for interface reporting
+        //this has to do with the relationship between totals and conversations. 
+        //we don't need this data, so we toss it out. It makes it do we can use SingleStat 
+        //and Guage visualizations for interfaces, which is nice. 
+        if (graphData[i]["label"] != "Other") {
+          datatoGraph.push({
+            target:
+              interfaceDesc + "--" + graphData[i]["tooltip"][1][interfaceId],
+            datapoints: tableData[i]
+          });
+        }
+      } else {
+        datatoGraph.push({
+          target: graphData[i]["label"],
+          datapoints: tableData[i]
+        });
+      }
     }
 
     return datatoGraph;
