@@ -155,27 +155,27 @@ export class GenericDatasource {
     if (query.targets[0].target != undefined) {
       //determines which select you have clicked on.
       let selectedIP = scope.ctrl.target.target;
+      
+        let params = makescrutJSON.interfaceJSON(
+          this.url,
+          this.authToken,
+          selectedIP
+        );
 
-      let params = makescrutJSON.interfaceJSON(
-        this.url,
-        this.authToken,
-        selectedIP
-      );
+        return this.doRequest(params).then(response => {
+          let data = [{ text: "All Interfaces", value: "allInterfaces" }];
+          let i = 0;
+          let jsonData = response.data;
 
-      return this.doRequest(params).then(response => {
-        let data = [{ text: "All Interfaces", value: "allInterfaces" }];
-        let i = 0;
-        let jsonData = response.data;
+          for (i = 0; i < jsonData.rows.length; i++) {
+            data.push({
+              value: jsonData.rows[i][5].filterDrag.searchStr,
+              text: jsonData.rows[i][5].label
+            });
+          }
 
-        for (i = 0; i < jsonData.rows.length; i++) {
-          data.push({
-            value: jsonData.rows[i][5].filterDrag.searchStr,
-            text: jsonData.rows[i][5].label
-          });
-        }
-
-        return data;
-      });
+          return data;
+        });
     }
   }
 
@@ -189,7 +189,9 @@ export class GenericDatasource {
       let params = makescrutJSON.exporterJSON(this.url, this.authToken);
       
       return this.doRequest(params).then(response => {
-        let exporterList = [{ text: "All Exporters", value: "allExporters" }];
+        let exporterList = [
+          { text: "All Exporters", value: "allExporters" },
+          { text: "Device Group", value: "deviceGroup" }];
         for (let i = 0; i < response.data.length; i++) {
           exporterList.push({
             text: response.data[i]["name"],
