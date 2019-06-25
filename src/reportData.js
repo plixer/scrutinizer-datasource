@@ -33,13 +33,7 @@ export class ScrutinizerJSON {
       scrutFilters = {
         sdfDips_0: `in_GROUP_${exporterInterface}`
       };
-<<<<<<< HEAD
-    } 
-    
-    else {
-=======
     } else {
->>>>>>> 988a1c1dc9ea288234d992bca556483b2468a965
       // if user wants a specific device, they can either have ALL interfaces, or a specific interface
       if (exporterInterface === "_ALL") {
         scrutFilters = {
@@ -183,18 +177,6 @@ export class ScrutinizerJSON {
     };
   }
 
-<<<<<<< HEAD
-  groupJSON(url,authToken){
-    return {
-      url,
-      method:"GET",
-      params: {
-        rm:"get_known_objects",
-        type:"deviceGroups",
-        authToken
-      }
-    }
-=======
   groupJSON(url, authToken) {
     return {
       url,
@@ -205,7 +187,6 @@ export class ScrutinizerJSON {
         authToken
       }
     };
->>>>>>> 988a1c1dc9ea288234d992bca556483b2468a965
   }
 }
 export class Handledata {

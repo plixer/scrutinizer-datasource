@@ -163,29 +163,7 @@ export class GenericDatasource {
     if (query.targets[0].target != undefined) {
       //determines which select you have clicked on.
       let selectedIP = scope.ctrl.target.target;
-      
-        let params = makescrutJSON.interfaceJSON(
-          this.url,
-          this.authToken,
-          selectedIP
-        );
 
-        return this.doRequest(params).then(response => {
-          let data = [{ text: "All Interfaces", value: "allInterfaces" }];
-          let i = 0;
-          let jsonData = response.data;
-
-          for (i = 0; i < jsonData.rows.length; i++) {
-            data.push({
-              value: jsonData.rows[i][5].filterDrag.searchStr,
-              text: jsonData.rows[i][5].label
-            });
-          }
-
-<<<<<<< HEAD
-          return data;
-        });
-=======
       if(selectedIP === 'deviceGroup'){
         let params = makescrutJSON.groupJSON(
           this.url,
@@ -229,7 +207,6 @@ export class GenericDatasource {
 
           return data;
         });}
->>>>>>> 988a1c1dc9ea288234d992bca556483b2468a965
     }
   }
 
