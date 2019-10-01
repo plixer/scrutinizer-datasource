@@ -83,6 +83,7 @@ export class GenericDatasource {
             let data = [{ text: "All Interfaces", value: "allInterfaces" }];
             let i = 0;
             let jsonData = response.data;
+            console.log(params)
   
             for (i = 0; i < jsonData.rows.length; i++) {
               data.push({
@@ -211,9 +212,9 @@ export class GenericDatasource {
 
   findInterfaces(options, scope) {
     let query = this.liveQuery;
+    console.log(query.targets)
 
-
-    if (query.targets[0].target != undefined) {
+    if (query.targets[0].target) {
       //determines which select you have clicked on.
       let selectedIP = scope.ctrl.target.target;
 
