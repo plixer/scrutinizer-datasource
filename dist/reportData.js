@@ -232,6 +232,24 @@ System.register(["lodash"], function (_export, _context) {
               }
             };
           }
+        }, {
+          key: "findExporter",
+          value: function findExporter(url, authToken, exporter) {
+            console.log(exporter);
+            return {
+              url: url,
+              method: "GET",
+              params: {
+                rm: "loadMap",
+                action: "search",
+                str: exporter,
+                authToken: authToken,
+                defaultGroupOnTop: 1,
+                statusTreeEnabled: 1,
+                page: 1
+              }
+            };
+          }
         }]);
 
         return ScrutinizerJSON;

@@ -69,6 +69,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           this.exporters = [];
 
           this.filters = "";
+
+          this.exporterList = this.exporterList();
         }
 
         _createClass(GenericDatasource, [{
@@ -94,69 +96,103 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             }
 
             if (this.templateSrv.getAdhocFilters) {
+
               query.adhocFilters = this.templateSrv.getAdhocFilters(this.name);
             } else {
               query.adhocFilters = [];
             }
 
             var checkStart = query.targets.length - 1;
-            //make sure use has selected all of drop downs before running report
-            if ((query.targets[checkStart].target !== undefined || "Select Exporter") && query.targets[checkStart].reportInterface !== "Select Interface" && query.targets[checkStart].reportDirection !== "Select Direction" && query.targets[checkStart].reportType !== "Select Report") {
-              this.runReport = true;
-            }
-            //once all drop downs are selected, run the report.
-            if (this.runReport == true) {
-              return new Promise(function (resolve, reject) {
-                var _loop = function _loop(j) {
-                  //grab the parameters to from the query.
-                  var scrutParams = makescrutJSON.createParams(_this.authToken, query.targets[j].reportType, //report type
-                  options["range"]["from"].unix(), //start time
-                  options["range"]["to"].unix(), //end time
-                  query.targets[j].target, //ip address
-                  query.targets[j].reportDirection, //report direction
-                  query.targets[j].reportInterface, // exporter Interface
-                  query.targets[j].reportFilters, // filerts
-                  query.targets[j].reportDisplay // bits or percent
-                  );
-                  //figure out the intervale time.
-                  var intervalTime = makescrutJSON.findtimeJSON(scrutParams);
 
-                  _this.doRequest({
-                    url: "" + _this.url,
-                    method: "GET",
-                    params: intervalTime
+            //check if there are ad-hoc filters added.
+            if (query.adhocFilters.length > 0) {
+              //save exporter export name to variable. 
+              var exporter_name = query.adhocFilters[0]['key'];
+              var interface_name = query.adhocFilters[0]['value'];
 
-                  }).then(function (response) {
+              if (exporter_name != "Device Group" && exporter_name != "All Exporters") {
+                var params = makescrutJSON.findExporter(this.url, this.authToken, exporter_name);
+                this.doRequest(params).then(function (exporter_details) {
+                  var exporter_ip = exporter_details.data.results[0].exporter_ip;
+                  var params = makescrutJSON.interfaceJSON(_this.url, _this.authToken, exporter_ip);
+                  _this.doRequest(params).then(function (response) {
+                    var data = [{ text: "All Interfaces", value: "allInterfaces" }];
+                    var i = 0;
+                    var jsonData = response.data;
 
-                    //store interval here.
-                    var selectedInterval = response.data["report_object"].dataGranularity.used;
-                    //set up JSON to go to Scrutinizer API
-                    var scrutinizerJSON = makescrutJSON.reportJSON(scrutParams);
+                    for (i = 0; i < jsonData.rows.length; i++) {
+                      data.push({
+                        value: jsonData.rows[i][5].filterDrag.searchStr,
+                        text: jsonData.rows[i][5].label
+                      });
+
+                      if (interface_name === jsonData.rows[i][5].label) {
+                        console.log(jsonData.rows[i][5].filterDrag.searchStr);
+                      }
+                    }
+                  });
+                });
+              }
+            } else {
+
+              if ((query.targets[checkStart].target !== undefined || "Select Exporter") && query.targets[checkStart].reportInterface !== "Select Interface" && query.targets[checkStart].reportDirection !== "Select Direction" && query.targets[checkStart].reportType !== "Select Report") {
+                this.runReport = true;
+              }
+
+              //once all drop downs are selected, run the report.
+              if (this.runReport == true) {
+                return new Promise(function (resolve, reject) {
+                  var _loop = function _loop(j) {
+                    //grab the parameters to from the query.
+                    var scrutParams = makescrutJSON.createParams(_this.authToken, query.targets[j].reportType, //report type
+                    options["range"]["from"].unix(), //start time
+                    options["range"]["to"].unix(), //end time
+                    query.targets[j].target, //ip address
+                    query.targets[j].reportDirection, //report direction
+                    query.targets[j].reportInterface, // exporter Interface
+                    query.targets[j].reportFilters, // filerts
+                    query.targets[j].reportDisplay // bits or percent
+                    );
+                    //figure out the intervale time.
+                    var intervalTime = makescrutJSON.findtimeJSON(scrutParams);
 
                     _this.doRequest({
                       url: "" + _this.url,
                       method: "GET",
-                      params: scrutinizerJSON
+                      params: intervalTime
+
                     }).then(function (response) {
 
-                      var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval);
+                      //store interval here.
+                      var selectedInterval = response.data["report_object"].dataGranularity.used;
+                      //set up JSON to go to Scrutinizer API
+                      var scrutinizerJSON = makescrutJSON.reportJSON(scrutParams);
 
-                      datatoGraph.push(formatedData);
-                      datatoGraph = [].concat.apply([], datatoGraph);
+                      _this.doRequest({
+                        url: "" + _this.url,
+                        method: "GET",
+                        params: scrutinizerJSON
+                      }).then(function (response) {
 
-                      k++;
-                      //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
-                      if (k === query.targets.length) {
-                        return resolve({ data: datatoGraph });
-                      }
+                        var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval);
+
+                        datatoGraph.push(formatedData);
+                        datatoGraph = [].concat.apply([], datatoGraph);
+
+                        k++;
+                        //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
+                        if (k === query.targets.length) {
+                          return resolve({ data: datatoGraph });
+                        }
+                      });
                     });
-                  });
-                };
+                  };
 
-                for (var j = 0; j < query.targets.length; j++) {
-                  _loop(j);
-                }
-              });
+                  for (var j = 0; j < query.targets.length; j++) {
+                    _loop(j);
+                  }
+                });
+              }
             }
           }
         }, {
@@ -202,6 +238,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 var params = makescrutJSON.groupJSON(this.url, this.authToken);
                 //if user selects Device Group we return a list of all groups available.
                 return this.doRequest(params).then(function (response) {
+
                   var i = 0;
 
                   var jsonData = response.data;
@@ -267,6 +304,25 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             }
           }
         }, {
+          key: "exporterList",
+          value: function exporterList() {
+            var _this3 = this;
+
+            var params = makescrutJSON.exporterJSON(this.url, this.authToken);
+            return this.doRequest(params).then(function (response) {
+              var exporterList = [{ text: "All Exporters", value: "allExporters" }, { text: "Device Group", value: "deviceGroup" }];
+              for (var i = 0; i < response.data.length; i++) {
+                exporterList.push({
+                  text: response.data[i]["name"],
+                  value: response.data[i]["ip"]
+                });
+              }
+
+              _this3.exporters = exporterList;
+              return exporterList;
+            });
+          }
+        }, {
           key: "doRequest",
           value: function doRequest(options) {
             options.withCredentials = this.withCredentials;
@@ -277,7 +333,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
         }, {
           key: "buildQueryParameters",
           value: function buildQueryParameters(options) {
-            var _this3 = this;
+            var _this4 = this;
 
             options.targets = _.filter(options.targets, function (target) {
               return target.target !== "select metric";
@@ -286,26 +342,93 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             var targets = _.map(options.targets, function (target) {
 
               return {
-                target: _this3.templateSrv.replace(target.target, options.scopedVars, "regex"),
+                target: _this4.templateSrv.replace(target.target, options.scopedVars, "regex"),
                 refId: target.refId,
                 hide: target.hide,
                 type: target.type || "timeserie",
 
-                reportType: _this3.templateSrv.replace(target.report, options.scopedVars, "regex"),
+                reportType: _this4.templateSrv.replace(target.report, options.scopedVars, "regex"),
 
-                reportDirection: _this3.templateSrv.replace(target.direction, options.scopedVars, "regex"),
+                reportDirection: _this4.templateSrv.replace(target.direction, options.scopedVars, "regex"),
 
-                reportInterface: _this3.templateSrv.replace(target.interface || "Select Interface", options.scopedVars, "regex"),
+                reportInterface: _this4.templateSrv.replace(target.interface || "Select Interface", options.scopedVars, "regex"),
 
-                reportFilters: _this3.templateSrv.replace(target.filters || "No Filter", options.scopedVars, "regex"),
+                reportFilters: _this4.templateSrv.replace(target.filters || "No Filter", options.scopedVars, "regex"),
 
-                reportDisplay: _this3.templateSrv.replace(target.display || "No Display", options.scopedVars, "regex")
+                reportDisplay: _this4.templateSrv.replace(target.display || "No Display", options.scopedVars, "regex")
               };
             });
 
             options.targets = targets;
 
             return options;
+          }
+        }, {
+          key: "getTagKeys",
+          value: function getTagKeys(options) {
+            var _this5 = this;
+
+            return new Promise(function (resolve, reject) {
+              var params = makescrutJSON.exporterJSON(_this5.url, _this5.authToken);
+              _this5.doRequest(params).then(function (response) {
+                var exporterList = [{ text: "All Exporters", value: "allExporters" }, { text: "Device Group", value: "deviceGroup" }];
+                for (var i = 0; i < response.data.length; i++) {
+                  exporterList.push({
+                    text: response.data[i]["name"],
+                    value: response.data[i]["ip"]
+                  });
+                }
+
+                return resolve(exporterList);
+              });
+            });
+          }
+        }, {
+          key: "getTagValues",
+          value: function getTagValues(options) {
+            var _this6 = this;
+
+            var selectedIP = options.key;
+
+            if (selectedIP === 'Device Group') {
+              var params = makescrutJSON.groupJSON(this.url, this.authToken);
+              //if user selects Device Group we return a list of all groups available.
+              return this.doRequest(params).then(function (response) {
+
+                var i = 0;
+
+                var jsonData = response.data;
+                var data = [];
+                for (i = 0; i < jsonData.length; i++) {
+                  data.push({
+                    value: jsonData[i]['id'].toString(),
+                    text: jsonData[i]['name']
+                  });
+                }
+
+                _this6.adhocFiltersInterfaces = data;
+                return data;
+              });
+            } else {
+              //otherwise we figre out what interfaces are available for selected device. 
+              var _params2 = makescrutJSON.interfaceJSON(this.url, this.authToken, selectedIP);
+
+              return this.doRequest(_params2).then(function (response) {
+
+                var data = [{ text: "All Interfaces", value: "allInterfaces" }];
+                var i = 0;
+                var jsonData = response.data;
+
+                for (i = 0; i < jsonData.rows.length; i++) {
+                  data.push({
+                    value: jsonData.rows[i][5].filterDrag.searchStr,
+                    text: jsonData.rows[i][5].label
+                  });
+                }
+
+                return data;
+              });
+            }
           }
         }]);
 

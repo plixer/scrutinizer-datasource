@@ -188,6 +188,24 @@ export class ScrutinizerJSON {
       }
     };
   }
+
+
+  findExporter(url, authToken, exporter) {
+    console.log(exporter)
+    return {
+      url, 
+      method:"GET",
+      params: {
+        rm:"loadMap",
+        action:"search",
+        str:exporter,
+        authToken,
+        defaultGroupOnTop: 1,
+        statusTreeEnabled: 1,
+        page: 1,
+      }
+    };
+  };
 }
 export class Handledata {
   //scrutinizer returns graph data opposite of how grafana wants it. So we flip it here.
