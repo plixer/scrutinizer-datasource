@@ -1,9 +1,9 @@
 "use strict";
 
-System.register(["lodash"], function (_export, _context) {
+System.register(["lodash", "./datasource"], function (_export, _context) {
   "use strict";
 
-  var _, _createClass, ScrutinizerJSON, Handledata;
+  var _, doRequext, GenericDatasource, _createClass, ScrutinizerJSON, Handledata;
 
   function _defineProperty(obj, key, value) {
     if (key in obj) {
@@ -29,6 +29,9 @@ System.register(["lodash"], function (_export, _context) {
   return {
     setters: [function (_lodash) {
       _ = _lodash.default;
+    }, function (_datasource) {
+      doRequext = _datasource.doRequext;
+      GenericDatasource = _datasource.GenericDatasource;
     }],
     execute: function () {
       _createClass = function () {
@@ -119,53 +122,101 @@ System.register(["lodash"], function (_export, _context) {
             };
           }
         }, {
-          key: "reportJSON",
-          value: function reportJSON(scrutParams) {
-            //returning report params to be passed into request
+          key: "authJson",
+          value: function authJson(scrutInfo) {
             return {
-              rm: "report_api",
-              action: "get",
-              authToken: scrutParams.authToken,
-              rpt_json: JSON.stringify({
-                reportTypeLang: scrutParams.reportType,
-                reportDirections: {
-                  selected: scrutParams.reportDirection
-                },
-                times: {
-                  dateRange: "Custom",
-                  start: "" + scrutParams.startTime,
-                  end: "" + scrutParams.endTime
-                },
-                orderBy: scrutParams.scrutDisplay["display"],
-                filters: scrutParams.scrutFilters,
-                dataGranularity: {
-                  selected: "auto"
+              url: scrutInfo['url'],
+              method: "GET",
+              params: {
+                rm: "licensing",
+                authToken: scrutInfo['authToken']
+              }
+            };
+          }
+        }, {
+          key: "exporterJSON",
+          value: function exporterJSON(scrutInfo) {
+            //params to figure out which exporters are available to pick from.
+            return {
+              url: scrutInfo['url'],
+              method: "GET",
+              params: {
+                rm: "get_known_objects",
+                type: "devices",
+                authToken: scrutInfo['authToken']
+              }
+            };
+          }
+        }, {
+          key: "findExporter",
+          value: function findExporter(scrutInfo, exporter) {
+            return {
+              url: scrutInfo["url"],
+              method: "GET",
+              params: {
+                rm: "loadMap",
+                action: "search",
+                str: exporter,
+                authToken: scrutInfo["authToken"],
+                defaultGroupOnTop: 1,
+                statusTreeEnabled: 1,
+                page: 1
+              }
+            };
+          }
+        }, {
+          key: "findtimeJSON",
+          value: function findtimeJSON(scrutInfo, scrutParams) {
+            //params to figure out which interval your in based on data you are requesting
+            return {
+              url: scrutInfo['url'],
+              method: 'get',
+              params: {
+                rm: "report_start",
+                authToken: scrutInfo['authToken'],
+                report_data: {
+                  parse: true,
+                  reportDirections: { selected: "" + scrutParams.reportDirection },
+                  reportTypeLang: "" + scrutParams.reportType,
+                  times: {
+                    dateRange: "Custom",
+                    start: "" + scrutParams.startTime,
+                    end: "" + scrutParams.endTime,
+                    clientTimezone: "America/New_York"
+                  },
+                  filters: scrutParams.scrutFilters,
+                  dataGranularity: { selected: "auto" },
+                  oneCollectorRequest: false
                 }
-              }),
+              }
 
-              data_requested: _defineProperty({}, scrutParams.reportDirection, {
-                graph: "all",
-                table: {
-                  query_limit: {
-                    offset: 0,
-                    max_num_rows: 10
-                  }
-                }
-              })
+            };
+          }
+        }, {
+          key: "groupJSON",
+          value: function groupJSON(url, authToken) {
+            return {
+              url: url,
+              method: "GET",
+              params: {
+                rm: "get_known_objects",
+                type: "deviceGroups",
+                authToken: authToken
+              }
             };
           }
         }, {
           key: "interfaceJSON",
-          value: function interfaceJSON(url, authToken, ipAddress) {
+          value: function interfaceJSON(scrutInfo, ipAddress) {
             //params to figure out which interfaces exist for a device
             return {
-              url: url,
+              url: scrutInfo["url"],
               method: "get",
               params: {
                 rm: "status",
                 action: "get",
                 view: "topInterfaces",
-                authToken: authToken,
+                authToken: scrutInfo["authToken"],
                 session_state: {
                   client_time_zone: "America/New_York",
                   order_by: [],
@@ -183,71 +234,44 @@ System.register(["lodash"], function (_export, _context) {
             };
           }
         }, {
-          key: "findtimeJSON",
-          value: function findtimeJSON(scrutParams) {
-            //params to figure out which interval your in based on data you are requesting
+          key: "reportJSON",
+          value: function reportJSON(scrutInfo, scrutParams) {
+            //returning report params to be passed into request
             return {
-              rm: "report_start",
-              authToken: scrutParams.authToken,
-              report_data: {
-                parse: true,
-                reportDirections: { selected: "" + scrutParams.reportDirection },
-                reportTypeLang: "" + scrutParams.reportType,
-                times: {
-                  dateRange: "Custom",
-                  start: "" + scrutParams.startTime,
-                  end: "" + scrutParams.endTime,
-                  clientTimezone: "America/New_York"
-                },
-                filters: scrutParams.scrutFilters,
-                dataGranularity: { selected: "auto" },
-                oneCollectorRequest: false
-              }
-            };
-          }
-        }, {
-          key: "exporterJSON",
-          value: function exporterJSON(url, authToken) {
-            //params to figure out which exporters are available to pick from.
-            return {
-              url: url,
-              method: "GET",
+              url: scrutInfo['url'],
+              'method': 'get',
               params: {
-                rm: "get_known_objects",
-                type: "devices",
-                authToken: authToken
+                rm: "report_api",
+                action: "get",
+                authToken: scrutInfo['authToken'],
+                rpt_json: JSON.stringify({
+                  reportTypeLang: scrutParams.reportType,
+                  reportDirections: {
+                    selected: scrutParams.reportDirection
+                  },
+                  times: {
+                    dateRange: "Custom",
+                    start: "" + scrutParams.startTime,
+                    end: "" + scrutParams.endTime
+                  },
+                  orderBy: scrutParams.scrutDisplay["display"],
+                  filters: scrutParams.scrutFilters,
+                  dataGranularity: {
+                    selected: "auto"
+                  }
+                }),
+
+                data_requested: _defineProperty({}, scrutParams.reportDirection, {
+                  graph: "all",
+                  table: {
+                    query_limit: {
+                      offset: 0,
+                      max_num_rows: 10
+                    }
+                  }
+                })
               }
-            };
-          }
-        }, {
-          key: "groupJSON",
-          value: function groupJSON(url, authToken) {
-            return {
-              url: url,
-              method: "GET",
-              params: {
-                rm: "get_known_objects",
-                type: "deviceGroups",
-                authToken: authToken
-              }
-            };
-          }
-        }, {
-          key: "findExporter",
-          value: function findExporter(url, authToken, exporter) {
-            console.log(exporter);
-            return {
-              url: url,
-              method: "GET",
-              params: {
-                rm: "loadMap",
-                action: "search",
-                str: exporter,
-                authToken: authToken,
-                defaultGroupOnTop: 1,
-                statusTreeEnabled: 1,
-                page: 1
-              }
+
             };
           }
         }]);
@@ -334,9 +358,9 @@ System.register(["lodash"], function (_export, _context) {
                   interfaceDesc = "Outbound";
                 }
                 //scrutinizer returns a small amout of "other traffic" for interface reporting
-                //this has to do with the relationship between totals and conversations. 
-                //we don't need this data, so we toss it out. It makes it do we can use SingleStat 
-                //and Guage visualizations for interfaces, which is nice. 
+                //this has to do with the relationship between totals and conversations.
+                //we don't need this data, so we toss it out. It makes it do we can use SingleStat
+                //and Guage visualizations for interfaces, which is nice.
                 if (graphData[i]["label"] != "Other") {
                   datatoGraph.push({
                     target: interfaceDesc + "--" + graphData[i]["tooltip"][1][interfaceId],

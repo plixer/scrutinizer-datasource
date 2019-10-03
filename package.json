@@ -5,7 +5,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node ./node_modules/grunt-cli/bin/grunt"
+    "build": "node ./node_modules/grunt-cli/bin/grunt",
+    "dev": "node ./node_modules/grunt-cli/bin/grunt watch"
   },
   "repository": {
     "type": "git",
