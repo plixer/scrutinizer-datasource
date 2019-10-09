@@ -58,6 +58,24 @@ System.register(["lodash", "./datasource"], function (_export, _context) {
         }
 
         _createClass(ScrutinizerJSON, [{
+          key: "createFilters",
+          value: function createFilters(adhocFilters) {
+            console.log(adhocFilters);
+
+            //check how many exporter filters are in a 
+            //case for all interfaces 
+
+            // case for single interface 
+
+            // case for one device 
+
+            // case for multiple devices 
+
+            // case where source ip filter is added (or any filter)
+
+            // case for all devices 
+          }
+        }, {
           key: "createParams",
           value: function createParams(authToken, reportType, startTime, endTime, ipAddress, reportDirection, expInterface, reportFilter, reportDisplay) {
             var exporterInterface = void 0;

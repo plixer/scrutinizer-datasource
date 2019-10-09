@@ -3,7 +3,22 @@ import { doRequext, GenericDatasource } from "./datasource";
 
 export class ScrutinizerJSON {
   constructor() {}
+  createFilters (adhocFilters){
+    console.log(adhocFilters)
 
+    //check how many exporter filters are in a 
+    //case for all interfaces 
+
+    // case for single interface 
+
+    // case for one device 
+
+    // case for multiple devices 
+
+    // case where source ip filter is added (or any filter)
+
+    // case for all devices 
+  }
   createParams(
     authToken,
     reportType,

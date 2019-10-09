@@ -1,9 +1,9 @@
 "use strict";
 
-System.register(["lodash", "./reportData", "./reportTypes"], function (_export, _context) {
+System.register(["lodash", "app/plugins/sdk", "./reportData", "./reportTypes"], function (_export, _context) {
   "use strict";
 
-  var _, ScrutinizerJSON, Handledata, HandleAdhoc, reportTypes, reportDirection, displayOptions, _createClass, makescrutJSON, dataHandler, GenericDatasource;
+  var _, QueryCtrl, ScrutinizerJSON, Handledata, HandleAdhoc, reportTypes, reportDirection, displayOptions, _createClass, makescrutJSON, dataHandler, GenericDatasource;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -14,6 +14,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
   return {
     setters: [function (_lodash) {
       _ = _lodash.default;
+    }, function (_appPluginsSdk) {
+      QueryCtrl = _appPluginsSdk.QueryCtrl;
     }, function (_reportData) {
       ScrutinizerJSON = _reportData.ScrutinizerJSON;
       Handledata = _reportData.Handledata;
@@ -74,7 +76,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             url: instanceSettings.url + "/fcgi/scrut_fcgi.fcgi",
             authToken: instanceSettings.jsonData["scrutinizerKey"]
           };
-          this.interfaces = [];
+          this.interfaces = ["Find Interfaces"];
           this.exporterList = this.exporterList();
         }
 
@@ -84,6 +86,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             var _this = this;
 
             console.log("running query");
+
             //store number of queries being run, make sure to run a Scrutinizer request for each query made.
             var numberOfQueries = 0;
             var datatoGraph = [];
@@ -107,9 +110,29 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
             if (this.templateSrv.getAdhocFilters) {
               query.adhocFilters = this.templateSrv.getAdhocFilters(this.name);
+              // console.log(someExporters)
             } else {
               query.adhocFilters = [];
             }
+            console.log('inside query');
+            //  if(query.adhocFilters.length > 0){
+            //    for(let i = 0; i < query.adhocFilters.length; i++ ){
+
+            //      if(query.adhocFilters[i]['key'] === "Exporter") {
+            //        return new Promise((resolve, reject)=>{
+            //         let interfacesToAdd = this.addInterfaces (query.adhocFilters[i]['value'], resolve)
+            //         console.log('resolved')
+            //         query.adhocFilters[i]['interfaces'] = interfacesToAdd
+            //        }
+
+            //        )
+
+
+            //      }
+            //      console.log(query)
+            //    }
+            //  }
+
 
             var checkStart = query.targets.length - 1;
 
@@ -118,9 +141,10 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
               //store the exporter that was selected
               var exporterName = query.adhocFilters[0]["value"];
               //store the interface that was selected
-              var interfaceName = query.adhocFilters[1]["value"];
+              // const interfaceName = query.adhocFilters[1]["value"];
               //create params to find the exporter details
               var adhocParams = makescrutJSON.findExporter(this.scrutInfo, exporterName);
+
               //object needed to make request for Scrutinizer data.
               var exporterObject = {
                 exporterIp: "",
@@ -136,18 +160,17 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                     _this.doRequest(interfaceParams).then(function (interfaceDetails) {
                       var i = 0;
                       var interfaceJson = interfaceDetails.data;
-                      console.log(interfaceJson);
-                      console.log(exporterObject["interfaceId"]);
-                      console.log(interfaceName);
+                      var interfaces = [];
 
-                      if (_this.interfaces.length > 0) {
-                        _this.interfaces = [];
+                      if (interfaces.length > 0) {
+                        interfaces = [];
                       }
                       for (i = 0; i < interfaceJson.rows.length; i++) {
-                        console.log(interfaceJson.rows[i][5].label);
-                        //add interfaces to the interface filter options
-                        _this.interfaces.push({ text: interfaceJson.rows[i][5].label });
 
+                        //add interfaces to the interface filter options
+                        interfaces.push({ text: interfaceJson.rows[i][5].label });
+                        query.adhocFilters[0]['interfaces'] = interfaces;
+                        var interfaceName = query.adhocFilters[1]["value"];
                         if (interfaceName === interfaceJson.rows[i][5].label) {
                           exporterObject.interfaceId = interfaceJson.rows[i][5].filterDrag.searchStr;
                         }
@@ -164,6 +187,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                         query.targets[j].reportFilters, // filerts
                         query.targets[j].reportDisplay // bits or percent
                         );
+                        console.log(scrutParams);
                         //figure out the intervale time.
                         var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams);
 
@@ -249,7 +273,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           value: function testDatasource() {
             console.log("Running Test");
             var params = makescrutJSON.authJson(this.scrutInfo);
-            console.log(params);
+
             return this.doRequest(params).then(function (response) {
               if (response.status === 200) {
                 if (response.data.details == "invalidToken") {
@@ -276,7 +300,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             console.log("running find interfaces");
             var query = this.liveQuery;
 
-            if (query) console.log(query);
             if (query.targets) {
               //determines which select you have clicked on.
               var selectedIP = scope.ctrl.target.target;
@@ -301,7 +324,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
               } else {
                 //otherwise we figre out what interfaces are available for selected device.
                 var interfaceThings = makescrutJSON.interfaceJSON(this.scrutInfo, selectedIP);
-                console.log(interfaceThings);
 
                 return this.doRequest(interfaceThings).then(function (response) {
                   var data = [{ text: "All Interfaces", value: "allInterfaces" }];
@@ -369,6 +391,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             var _this3 = this;
 
             console.log("running build query");
+            console.log(options);
+
             options.targets = _.filter(options.targets, function (target) {
               return target.target !== "select metric";
             });
@@ -397,9 +421,83 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             return options;
           }
         }, {
+          key: "HandleAdhocFilters",
+          value: function HandleAdhocFilters(resolve) {
+            var _this4 = this;
+
+            //if key is exporter there is no AND, we know we are looking for interfaces on that exporter. 
+            var adhocQuery = this.buildQueryParameters({ 'targets': 'none' });
+            var interfaces = [];
+            if (this.templateSrv.getAdhocFilters) {
+              adhocQuery.adhocFilters = this.templateSrv.getAdhocFilters(this.name);
+            } else {
+              adhocQuery.adhocFilters = [];
+            }
+
+            console.log(adhocQuery.adhocFilters);
+            adhocQuery.adhocFilters[0]["interfaces"] = [];
+            var exporterName = adhocQuery.adhocFilters[0]["value"];
+            var adhocParams = makescrutJSON.findExporter(this.scrutInfo, exporterName);
+            this.doRequest(adhocParams).then(function (exporter_details) {
+
+              var exporterIp = exporter_details.data.results[0].exporter_ip;
+              var interfaceParams = makescrutJSON.interfaceJSON(_this4.scrutInfo, exporterIp);
+              _this4.doRequest(interfaceParams).then(function (interfaceDetails) {
+                var i = 0;
+                var interfaceJson = interfaceDetails.data;
+
+                if (interfaces.length > 0) {
+                  interfaces = [];
+                }
+                for (i = 0; i < interfaceJson.rows.length; i++) {
+
+                  //add interfaces to the interface filter options
+                  interfaces.push({ text: interfaceJson.rows[i][5].label });
+                  adhocQuery.adhocFilters[0]["interfaces"].push(interfaceJson.rows[i][5].label);
+                  // if (interfaceName === interfaceJson.rows[i][5].label) {
+                  //   exporterObject.interfaceId =
+                  //     interfaceJson.rows[i][5].filterDrag.searchStr;
+                  // }
+                }
+
+                resolve(interfaces);
+              });
+            });
+          }
+        }, {
+          key: "addInterfaces",
+          value: function addInterfaces(exporterName) {
+            var _this5 = this;
+
+            //if key is exporter there is no AND, we know we are looking for interfaces on that exporter.
+            var interfaces = [];
+            var exporterToSearch = exporterName;
+            var adhocParams = makescrutJSON.findExporter(this.scrutInfo, exporterToSearch);
+            this.doRequest(adhocParams).then(function (exporter_details) {
+
+              var exporterIpFound = exporter_details.data.results[0].exporter_ip;
+              var interfacesToSearch = makescrutJSON.interfaceJSON(_this5.scrutInfo, exporterIpFound);
+              _this5.doRequest(interfacesToSearch).then(function (interfaceDetails) {
+                var i = 0;
+                var interfaceJson = interfaceDetails.data;
+
+                if (interfaces.length > 0) {
+                  interfaces = [];
+                }
+                for (i = 0; i < interfaceJson.rows.length; i++) {
+
+                  //add interfaces to the interface filter options
+                  interfaces.push(interfaceJson.rows[i][5].label);
+                }
+                console.log(interfaces);
+                return resolve(interfaces);
+              });
+            });
+          }
+        }, {
           key: "getTagKeys",
           value: function getTagKeys(options) {
-            console.log("running get tag eys");
+            console.log("getting tag keys");
             return new Promise(function (resolve, reject) {
               return resolve([{ text: "Exporter" }, { text: "Interface" }]);
             });
@@ -407,17 +505,18 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
         }, {
           key: "getTagValues",
           value: function getTagValues(options) {
-            var _this4 = this;
+            var _this6 = this;
 
-            console.log(options);
+            console.log("getting tag values");
+
             if (options.key === "Exporter") {
               return new Promise(function (resolve, reject) {
-                return resolve(_this4.exporterList);
+                return resolve(_this6.exporterList);
               });
             } else if (options.key === "Interface") {
               return new Promise(function (resolve, reject) {
-                console.log(_this4.interfaces);
-                resolve(_this4.interfaces);
+
+                _this6.HandleAdhocFilters(resolve);
               });
             }
           }
