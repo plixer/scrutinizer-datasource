@@ -113,10 +113,10 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             var checkStart = query.targets.length - 1;
             //counter is used to keep track of number of exporters. This matters for creating the filter ojects
             var numberofExporters = 0;
-
+            var filterTypes = ["Source IP Filter", "Add Port Filter", "Destination IP Filter"];
             if (query.adhocFilters.length > 0) {
               query.adhocFilters.forEach(function (filter) {
-                if (filter["key"] !== "Source IP Filter") {
+                if (!filterTypes.includes(filter["key"])) {
                   numberofExporters++;
                 }
               });
@@ -126,16 +126,25 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 //filter object used to store data about addtional data about filters needed for Scrutinizer to return data. 
                 var filterObject = {
                   sourceIp: [],
-                  exporterDetails: []
+                  exporterDetails: [],
+                  ports: [],
+                  destIp: []
                 };
 
                 //this exporter count is compared to the number of exporters to verify we have loops threw everything before returning.
                 var exporterCount = 0;
 
                 query.adhocFilters.forEach(function (filter) {
+                  console.log(filter['key']);
                   if (filter["key"] === "Source IP Filter") {
                     //source IPs are pushed up as an array, will add other filter methods later.
                     filterObject.sourceIp.push(filter["value"]);
+                  } else if (filter["key"] === "Add Port Filter") {
+
+                    filterObject.ports.push(filter["value"]);
+                  } else if (filter["key"] === "Destination IP Filter") {
+
+                    filterObject.destIp.push(filter["value"]);
                   } else {
                     //in some cases we will be passed the DNS/SNMP name of an exporter, here we convert it to an IP address needed for final filter. 
                     var adhocParams = makescrutJSON.findExporter(_this.scrutInfo, filter["key"]);
@@ -163,11 +172,14 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                         });
 
                         exporterCount++;
+                        console.log(exporterCount);
+                        console.log(numberofExporters);
+                        console.log(exporterCount === numberofExporters);
                         //we have now looped through all the exporters in the filters.
                         if (exporterCount === numberofExporters) {
                           //created the filters we need to pass into each gadget on the dashboard.
                           var reportFilter = _this.createFilters(filterObject);
-
+                          console.log(reportFilter);
                           //run a query for each gadget on the dashboard.
                           query.targets.forEach(function (eachQuery) {
                             var scrutParams = makescrutJSON.createFilters(_this.scrutInfo, options, reportFilter, eachQuery);
@@ -435,6 +447,20 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 reportFilters[filerCount] = "in_" + element + "_src";
               });
             }
+
+            if (filterObject.destIp.length > 0) {
+              filterObject.destIp.forEach(function (element, index) {
+                var filerCount = "sdfIps_" + index;
+                reportFilters[filerCount] = "in_" + element + "_dst";
+              });
+            }
+
+            if (filterObject.ports.length > 0) {
+              filterObject.ports.forEach(function (element, index) {
+                var filerCount = "sdfSdPorts_" + index;
+                reportFilters[filerCount] = "in_" + element + "_both";
+              });
+            }
             //there will always be exporter filters, add them.
             filterObject.exporterDetails.forEach(function (element, index) {
               var exporterIp = element.exporterIp,
@@ -444,6 +470,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
               reportFilters[filterCount] = "in_" + exporterIp + "_" + exporterIp + "-" + interfaceId;
             });
+            console.log(reportFilters);
 
             return reportFilters;
           }
@@ -482,7 +509,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
             var params = makescrutJSON.exporterJSON(this.scrutInfo);
             return this.doRequest(params).then(function (response) {
-              var exporterList = [{ text: "All Exporters" }, { text: "Device Group" }, { text: "Source IP Filter" }];
+              var exporterList = [{ text: "All Exporters" }, { text: "Device Group" }, { text: "Source IP Filter" }, { text: "Add Port Filter" }, { text: "Destination IP Filter" }];
               for (var i = 0; i < response.data.length; i++) {
                 exporterList.push({
                   text: response.data[i]["name"],

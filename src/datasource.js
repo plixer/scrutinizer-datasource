@@ -71,10 +71,10 @@ export class GenericDatasource {
     let checkStart = query.targets.length - 1;
     //counter is used to keep track of number of exporters. This matters for creating the filter ojects
     let numberofExporters = 0;
-
+    let filterTypes = ["Source IP Filter","Add Port Filter", "Destination IP Filter" ]
     if (query.adhocFilters.length > 0) {
       query.adhocFilters.forEach(filter => {
-        if (filter["key"] !== "Source IP Filter") {
+        if (!filterTypes.includes(filter["key"])) {
           numberofExporters++;
         }
       });
@@ -84,7 +84,9 @@ export class GenericDatasource {
         //filter object used to store data about addtional data about filters needed for Scrutinizer to return data. 
         let filterObject = {
           sourceIp: [],
-          exporterDetails: []
+          exporterDetails: [],
+          ports:[],
+          destIp:[]
         };
         
         //this exporter count is compared to the number of exporters to verify we have loops threw everything before returning.
@@ -92,10 +94,19 @@ export class GenericDatasource {
 
 
         query.adhocFilters.forEach(filter => {
+          console.log(filter['key'])
           if (filter["key"] === "Source IP Filter") {
             //source IPs are pushed up as an array, will add other filter methods later.
             filterObject.sourceIp.push(filter["value"]);
-          } else {
+          } else if(filter["key"] === "Add Port Filter") {
+            
+            filterObject.ports.push(filter["value"])
+            
+          }else if(filter["key"] === "Destination IP Filter") {
+            
+            filterObject.destIp.push(filter["value"])
+            
+          }else {
             //in some cases we will be passed the DNS/SNMP name of an exporter, here we convert it to an IP address needed for final filter. 
             let adhocParams = makescrutJSON.findExporter(
               this.scrutInfo,
@@ -128,11 +139,14 @@ export class GenericDatasource {
                 });
 
                 exporterCount++;
+                console.log(exporterCount)
+                console.log(numberofExporters)
+                console.log(exporterCount === numberofExporters)
                 //we have now looped through all the exporters in the filters.
                 if (exporterCount === numberofExporters) {
                   //created the filters we need to pass into each gadget on the dashboard.
                   let reportFilter = this.createFilters(filterObject);
-
+                  console.log(reportFilter)
                   //run a query for each gadget on the dashboard.
                   query.targets.forEach(eachQuery => {
                     let scrutParams = makescrutJSON.createFilters(
@@ -461,6 +475,20 @@ export class GenericDatasource {
         reportFilters[filerCount] = `in_${element}_src`;
       });
     }
+
+    if (filterObject.destIp.length > 0) {
+      filterObject.destIp.forEach((element, index) => {
+        let filerCount = `sdfIps_${index}`;
+        reportFilters[filerCount] = `in_${element}_dst`;
+      });
+    }
+
+    if (filterObject.ports.length > 0) {
+      filterObject.ports.forEach((element, index) => {
+        let filerCount = `sdfSdPorts_${index}`;
+        reportFilters[filerCount] = `in_${element}_both`;
+      });
+    }
     //there will always be exporter filters, add them.
     filterObject.exporterDetails.forEach((element, index) => {
       let { exporterIp, interfaceId } = element;
@@ -470,6 +498,7 @@ export class GenericDatasource {
         filterCount
       ] = `in_${exporterIp}_${exporterIp}-${interfaceId}`;
     });
+    console.log(reportFilters)
 
     return reportFilters;
   }
@@ -510,7 +539,9 @@ export class GenericDatasource {
       let exporterList = [
         { text: "All Exporters" },
         { text: "Device Group" },
-        { text: "Source IP Filter" }
+        { text: "Source IP Filter" },
+        { text: "Add Port Filter"}, 
+        { text: "Destination IP Filter" },
       ];
       for (let i = 0; i < response.data.length; i++) {
         exporterList.push({
@@ -518,7 +549,7 @@ export class GenericDatasource {
           value: response.data[i]["ip"]
         });
       }
-
+      
       this.exporters = exporterList;
       return resolve(exporterList);
     });
