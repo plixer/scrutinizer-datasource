@@ -1,9 +1,9 @@
 "use strict";
 
-System.register(["lodash", "./datasource"], function (_export, _context) {
+System.register(["lodash"], function (_export, _context) {
   "use strict";
 
-  var _, doRequext, GenericDatasource, _createClass, ScrutinizerJSON, Handledata;
+  var _, _createClass, ScrutinizerJSON, Handledata;
 
   function _defineProperty(obj, key, value) {
     if (key in obj) {
@@ -29,9 +29,6 @@ System.register(["lodash", "./datasource"], function (_export, _context) {
   return {
     setters: [function (_lodash) {
       _ = _lodash.default;
-    }, function (_datasource) {
-      doRequext = _datasource.doRequext;
-      GenericDatasource = _datasource.GenericDatasource;
     }],
     execute: function () {
       _createClass = function () {
@@ -59,21 +56,28 @@ System.register(["lodash", "./datasource"], function (_export, _context) {
 
         _createClass(ScrutinizerJSON, [{
           key: "createFilters",
-          value: function createFilters(adhocFilters) {
-            console.log(adhocFilters);
+          value: function createFilters(scrut, options, reportFilter, query) {
+            var authToken = scrut.authToken;
+            var reportType = query.reportType,
+                reportDirection = query.reportDirection,
+                reportDisplay = query.reportDisplay;
 
-            //check how many exporter filters are in a 
-            //case for all interfaces 
+            var scrutDisplay = void 0;
+            if (reportDisplay === "percent") {
+              scrutDisplay = { display: "custom_interfacepercent" };
+            } else {
+              scrutDisplay = { display: "sum_octetdeltacount" };
+            }
+            return {
+              authToken: authToken,
+              reportType: reportType,
+              startTime: options["range"]["from"].unix(),
+              endTime: options["range"]["to"].unix(),
+              reportDirection: reportDirection,
+              scrutDisplay: scrutDisplay,
+              scrutFilters: reportFilter
 
-            // case for single interface 
-
-            // case for one device 
-
-            // case for multiple devices 
-
-            // case where source ip filter is added (or any filter)
-
-            // case for all devices 
+            };
           }
         }, {
           key: "createParams",
@@ -168,6 +172,7 @@ System.register(["lodash", "./datasource"], function (_export, _context) {
         }, {
           key: "findExporter",
           value: function findExporter(scrutInfo, exporter) {
+            console.log(exporter);
             return {
               url: scrutInfo["url"],
               method: "GET",

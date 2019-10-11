@@ -1,23 +1,28 @@
 import _ from "lodash";
-import { doRequext, GenericDatasource } from "./datasource";
+
 
 export class ScrutinizerJSON {
   constructor() {}
-  createFilters (adhocFilters){
-    console.log(adhocFilters)
+  createFilters (scrut, options, reportFilter,query){
+    let {authToken} = scrut;
+    let {reportType, reportDirection,reportDisplay } = query
+    let scrutDisplay;
+    if (reportDisplay === "percent") {
+      scrutDisplay = { display: "custom_interfacepercent" };
+    } else {
+      scrutDisplay = { display: "sum_octetdeltacount" };
+    }
+    return {
+      authToken,
+      reportType,
+      startTime: options["range"]["from"].unix(),
+      endTime: options["range"]["to"].unix(),
+      reportDirection,
+      scrutDisplay,
+      scrutFilters : reportFilter
 
-    //check how many exporter filters are in a 
-    //case for all interfaces 
+    }
 
-    // case for single interface 
-
-    // case for one device 
-
-    // case for multiple devices 
-
-    // case where source ip filter is added (or any filter)
-
-    // case for all devices 
   }
   createParams(
     authToken,
@@ -121,6 +126,7 @@ export class ScrutinizerJSON {
   };
 
   findExporter(scrutInfo, exporter) {
+    console.log(exporter)
     return {
       url: scrutInfo["url"],
       method: "GET",

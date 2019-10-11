@@ -1,6 +1,5 @@
 import _ from "lodash";
-import {QueryCtrl} from 'app/plugins/sdk';
-import { ScrutinizerJSON, Handledata, HandleAdhoc } from "./reportData";
+import { ScrutinizerJSON, Handledata} from "./reportData";
 import { reportTypes, reportDirection, displayOptions } from "./reportTypes";
 
 let makescrutJSON = new ScrutinizerJSON();
@@ -8,8 +7,6 @@ let dataHandler = new Handledata();
 
 export class GenericDatasource {
   constructor(instanceSettings, $q, backendSrv, templateSrv) {
-
-    console.log("running Constructor");
     this.type = instanceSettings.type;
     this.name = instanceSettings.name;
     this.q = $q;
@@ -37,21 +34,21 @@ export class GenericDatasource {
       url: instanceSettings.url + "/fcgi/scrut_fcgi.fcgi",
       authToken: instanceSettings.jsonData["scrutinizerKey"]
     };
-    this.interfaces = ["Find Interfaces"];
     this.exporterList = this.exporterList();
   }
 
   query(options) {
-    console.log("running query");
-
     
     //store number of queries being run, make sure to run a Scrutinizer request for each query made.
     let numberOfQueries = 0;
+
+    //data sent up into this list, it's returned at end.
     let datatoGraph = [];
 
-    //only run a report if all options are populated
+    //only run a report if all options are populated, only matter when there are not adhoc filters.
     this.runReport = false;
-  
+
+    //takes the query and stores it to a variable
     var query = this.buildQueryParameters(options);
 
     //save the query to this, so it can be accessed by other methods.
@@ -59,138 +56,130 @@ export class GenericDatasource {
 
     query.targets = query.targets.filter(t => !t.hide);
 
-    //add adhoc filters to the query.
+    
     if (query.targets.length <= 0) {
       return this.q.when({ data: [] });
     }
 
+    //add adhoc filters to the query.
     if (this.templateSrv.getAdhocFilters) {
       query.adhocFilters = this.templateSrv.getAdhocFilters(this.name);
-      // console.log(someExporters)
     } else {
       query.adhocFilters = [];
     }
-    console.log('inside query')
-  //  if(query.adhocFilters.length > 0){
-  //    for(let i = 0; i < query.adhocFilters.length; i++ ){
-       
-  //      if(query.adhocFilters[i]['key'] === "Exporter") {
-  //        return new Promise((resolve, reject)=>{
-  //         let interfacesToAdd = this.addInterfaces (query.adhocFilters[i]['value'], resolve)
-  //         console.log('resolved')
-  //         query.adhocFilters[i]['interfaces'] = interfacesToAdd
-  //        }
-         
-  //        )
-         
-         
-  //      }
-  //      console.log(query)
-  //    }
-  //  }
- 
 
     let checkStart = query.targets.length - 1;
+    //counter is used to keep track of number of exporters. This matters for creating the filter ojects
+    let numberofExporters = 0;
 
-    //check if there are ad-hoc filters added.
     if (query.adhocFilters.length > 0) {
-      //store the exporter that was selected
-      const exporterName = query.adhocFilters[0]["value"];
-      //store the interface that was selected
-      // const interfaceName = query.adhocFilters[1]["value"];
-      //create params to find the exporter details
-      const adhocParams = makescrutJSON.findExporter(
-        this.scrutInfo,
-        exporterName
-      );
+      query.adhocFilters.forEach(filter => {
+        if (filter["key"] !== "Source IP Filter") {
+          numberofExporters++;
+        }
+      });
 
-      //object needed to make request for Scrutinizer data.
-      const exporterObject = {
-        exporterIp: "",
-        interfaceId: ""
-      };
-      if (adhocParams) {
-        return new Promise((resolve, reject) => {
-          this.doRequest(adhocParams)
-            .then(exporter_details => {
-              //set IP addres for the exporter
-              exporterObject.exporterIp = exporter_details.data.results[0].exporter_ip;
-              //find interfaces for that exporter.
-              let interfaceParams = makescrutJSON.interfaceJSON(this.scrutInfo,exporterObject.exporterIp);
-                this.doRequest(interfaceParams)
-                    .then(interfaceDetails => {
-                      let i = 0;
-                      let interfaceJson = interfaceDetails.data;
-                      let interfaces = []
+      //start the process of gathering data from scrutinizer. 
+      return new Promise((resolve, reject) => {
+        //filter object used to store data about addtional data about filters needed for Scrutinizer to return data. 
+        let filterObject = {
+          sourceIp: [],
+          exporterDetails: []
+        };
+        
+        //this exporter count is compared to the number of exporters to verify we have loops threw everything before returning.
+        let exporterCount = 0;
 
-                      
-                      if(interfaces.length >0){
-                        interfaces = []
-                      }
-                      for (i = 0; i < interfaceJson.rows.length; i++) {
 
-                        //add interfaces to the interface filter options
-                        interfaces.push({ text: interfaceJson.rows[i][5].label });
-                        query.adhocFilters[0]['interfaces'] = interfaces
-                        const interfaceName = query.adhocFilters[1]["value"]
-                        if (interfaceName === interfaceJson.rows[i][5].label) {
-                          exporterObject.interfaceId =
-                            interfaceJson.rows[i][5].filterDrag.searchStr;
+        query.adhocFilters.forEach(filter => {
+          if (filter["key"] === "Source IP Filter") {
+            //source IPs are pushed up as an array, will add other filter methods later.
+            filterObject.sourceIp.push(filter["value"]);
+          } else {
+            //in some cases we will be passed the DNS/SNMP name of an exporter, here we convert it to an IP address needed for final filter. 
+            let adhocParams = makescrutJSON.findExporter(
+              this.scrutInfo,
+              filter["key"]
+            );
+
+            this.doRequest(adhocParams).then(exporter_details => {
+              let exporterIpFound = exporter_details.data.results[0].exporter_ip;
+
+              //need to find the interface ID for the interface passed to Scrutinizer.
+              let interfaceParams = makescrutJSON.interfaceJSON(
+                this.scrutInfo,
+                exporterIpFound
+              );
+              this.doRequest(interfaceParams).then(interfaceDetails => {
+                let interfaceList = interfaceDetails["data"]["rows"];
+                //for each interface that belongs to a device, we want to compare it against the one selected in grafana. If it matched we can add it to the filters
+                interfaceList.forEach(exporterInterface => {
+                  let interfaceID = exporterInterface[5].filterDrag.searchStr;
+                  let interfaceName = exporterInterface[5]["label"];
+                  //if selected interface matches and interface in the list, add it to object
+                  if (filter["value"] === interfaceName) {
+                    filterObject.exporterDetails.push({
+                      exporterName: filter["key"],
+                      exporterIp: exporterIpFound,
+                      interfaceName: filter["value"],
+                      interfaceId: interfaceID
+                    });
+                  }
+                });
+
+                exporterCount++;
+                //we have now looped through all the exporters in the filters.
+                if (exporterCount === numberofExporters) {
+                  //created the filters we need to pass into each gadget on the dashboard.
+                  let reportFilter = this.createFilters(filterObject);
+
+                  //run a query for each gadget on the dashboard.
+                  query.targets.forEach(eachQuery => {
+                    let scrutParams = makescrutJSON.createFilters(
+                      this.scrutInfo,
+                      options,
+                      reportFilter,
+                      eachQuery
+                    );
+
+                    let params = makescrutJSON.findtimeJSON(
+                      this.scrutInfo,
+                      scrutParams
+                    );
+                    //find out what interval the data is in, we need to use this later to normalize the graphs.
+                    this.doRequest(params).then(response => {
+                      let selectedInterval =
+                        response.data["report_object"].dataGranularity.used;
+                      //set up JSON to go to Scrutinizer API
+                      let params = makescrutJSON.reportJSON(
+                        this.scrutInfo,
+                        scrutParams
+                      );
+                      //request for report data made to scrutinizer
+                      this.doRequest(params).then(response => {
+                        //data organized into how Grafana expects it.
+                        let formatedData = dataHandler.formatData(
+                          response.data,
+                          scrutParams,
+                          selectedInterval
+                        );
+
+                        datatoGraph.push(formatedData);
+                        datatoGraph = [].concat.apply([], datatoGraph);
+                        numberOfQueries++;
+                        //make sure we have gone through each query in a gadget.
+                        if (numberOfQueries === query.targets.length) {
+                          return resolve({ data: datatoGraph });
                         }
-                      }
-
-                      for (let j = 0; j < query.targets.length; j++) {
-                        //grab the parameters to from the query.
-                        let scrutParams = makescrutJSON.createParams(
-                          this.scrutInfo["authToken"],
-                          query.targets[j].reportType, //report type
-                          options["range"]["from"].unix(), //start time
-                          options["range"]["to"].unix(), //end time
-                          exporterObject["exporterIp"], //ip address
-                          query.targets[j].reportDirection, //report direction
-                          exporterObject["interfaceId"], // exporter Interface
-                          query.targets[j].reportFilters, // filerts
-                          query.targets[j].reportDisplay // bits or percent
-                        );
-                        console.log(scrutParams)
-                        //figure out the intervale time.
-                        let params = makescrutJSON.findtimeJSON(
-                          this.scrutInfo,
-                          scrutParams
-                        );
-
-                        this.doRequest(params).then(response => {
-                          //store interval here.
-                          let selectedInterval =
-                            response.data["report_object"].dataGranularity.used;
-                          //set up JSON to go to Scrutinizer API
-                          let params = makescrutJSON.reportJSON(
-                            this.scrutInfo,
-                            scrutParams
-                          );
-                          this.doRequest(params).then(response => {
-                            let formatedData = dataHandler.formatData(
-                              response.data,
-                              scrutParams,
-                              selectedInterval
-                            );
-
-                            datatoGraph.push(formatedData);
-                            datatoGraph = [].concat.apply([], datatoGraph);
-
-                            numberOfQueries++;
-
-                            //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
-                            if (numberOfQueries === query.targets.length) {
-                              return resolve({ data: datatoGraph });
-                            }
-                          });
-                        });
-                      }
+                      });
                     });
                   });
+                }
+              });
             });
           }
+        });
+      });
     } else {
       if (
         (query.targets[checkStart].target !== undefined || "Select Exporter") &&
@@ -284,7 +273,6 @@ export class GenericDatasource {
     console.log("running find interfaces");
     let query = this.liveQuery;
 
-
     if (query.targets) {
       //determines which select you have clicked on.
       let selectedIP = scope.ctrl.target.target;
@@ -315,7 +303,6 @@ export class GenericDatasource {
           this.scrutInfo,
           selectedIP
         );
-
 
         return this.doRequest(interfaceThings).then(response => {
           let data = [{ text: "All Interfaces", value: "allInterfaces" }];
@@ -348,7 +335,6 @@ export class GenericDatasource {
   }
 
   exporterList() {
-    console.log("running exporterlist");
 
     let params = makescrutJSON.exporterJSON(this.scrutInfo);
     return this.doRequest(params).then(response => {
@@ -369,18 +355,16 @@ export class GenericDatasource {
   }
 
   doRequest(options) {
-    console.log("running do request");
+
     options.withCredentials = this.withCredentials;
     options.headers = this.headers;
- 
+
     return this.backendSrv.datasourceRequest(options);
   }
 
   //function from simplejsondatasource, used to take values from drop downs and add to query.
   //When adding a new dropdown you need to update this function.
   buildQueryParameters(options) {
-    console.log("running build query");
-    console.log(options)
 
 
     options.targets = _.filter(options.targets, target => {
@@ -435,113 +419,129 @@ export class GenericDatasource {
     return options;
   }
 
-  HandleAdhocFilters(resolve){
-
-    //if key is exporter there is no AND, we know we are looking for interfaces on that exporter. 
-    var adhocQuery = this.buildQueryParameters({'targets':'none'})
-    let interfaces = []
-    if (this.templateSrv.getAdhocFilters) {
-      adhocQuery.adhocFilters = this.templateSrv.getAdhocFilters(this.name);
-
-    } else {
-      adhocQuery.adhocFilters = [];
-    }
-
-    console.log(adhocQuery.adhocFilters)
-    adhocQuery.adhocFilters[0]["interfaces"] = []
-    const exporterName = adhocQuery.adhocFilters[0]["value"]
-    const adhocParams = makescrutJSON.findExporter(
+  //used to figure out which interfaces to show for a paritcular exporter.
+  HandleAdhocFilters(resolve, options) {
+    let exporterParams = makescrutJSON.findExporter(
       this.scrutInfo,
-      exporterName
+      options.key
     );
-    this.doRequest(adhocParams).then((exporter_details)=>{
+    let interfaces = [];
 
-      const exporterIp = exporter_details.data.results[0].exporter_ip;
-      let interfaceParams = makescrutJSON.interfaceJSON(this.scrutInfo,exporterIp);
-      this.doRequest(interfaceParams)
-      .then(interfaceDetails => {
-        let i = 0;
-        let interfaceJson = interfaceDetails.data;
+    this.doRequest(exporterParams).then(exporterResults => {
+      let exporterIp = exporterResults["data"]["results"][0]["exporter_ip"];
+      let interfaceParams = makescrutJSON.interfaceJSON(
+        this.scrutInfo,
+        exporterIp
+      );
 
-        
-        if(interfaces.length >0){
-          interfaces = []
+      this.doRequest(interfaceParams).then(interfaceDetails => {
+        let interfaceList = interfaceDetails["data"]["rows"];
+
+        for (let k = 0; k < interfaceList.length; k++) {
+          let interfaceID = interfaceList[k][5].filterDrag.searchStr;
+          let interfaceName = interfaceList[k][5]["label"];
+          interfaces.push({
+            text: interfaceName
+          });
         }
-        for (i = 0; i < interfaceJson.rows.length; i++) {
-
-          //add interfaces to the interface filter options
-          interfaces.push({ text: interfaceJson.rows[i][5].label});
-          adhocQuery.adhocFilters[0]["interfaces"].push(interfaceJson.rows[i][5].label)
-          // if (interfaceName === interfaceJson.rows[i][5].label) {
-          //   exporterObject.interfaceId =
-          //     interfaceJson.rows[i][5].filterDrag.searchStr;
-          // }
-        }
-
-        resolve(interfaces)
+        return resolve(interfaces);
       });
-    })
-   
+    });
   }
 
+  createFilters(filterObject) {
+    console.log("running create filters");
 
-  addInterfaces(exporterName){
+    let reportFilters = {};
 
+    //if there are ip addres filters, add them
+    if (filterObject.sourceIp.length > 0) {
+      filterObject.sourceIp.forEach((element, index) => {
+        let filerCount = `sdfIps_${index}`;
+        reportFilters[filerCount] = `in_${element}_src`;
+      });
+    }
+    //there will always be exporter filters, add them.
+    filterObject.exporterDetails.forEach((element, index) => {
+      let { exporterIp, interfaceId } = element;
+      let filterCount = `sdfDips_${index}`;
+
+      reportFilters[
+        filterCount
+      ] = `in_${exporterIp}_${exporterIp}-${interfaceId}`;
+    });
+
+    return reportFilters;
+  }
+
+  addInterfaces(exporterName) {
     //if key is exporter there is no AND, we know we are looking for interfaces on that exporter.
-    let interfaces = []
-    let exporterToSearch = exporterName
+    let interfaces = [];
+    let exporterToSearch = exporterName;
     let adhocParams = makescrutJSON.findExporter(
       this.scrutInfo,
       exporterToSearch
     );
-    this.doRequest(adhocParams).then((exporter_details)=>{
-
+    this.doRequest(adhocParams).then(exporter_details => {
       let exporterIpFound = exporter_details.data.results[0].exporter_ip;
-      let interfacesToSearch = makescrutJSON.interfaceJSON(this.scrutInfo,exporterIpFound);
-      this.doRequest(interfacesToSearch)
-      .then(interfaceDetails => {
+      let interfacesToSearch = makescrutJSON.interfaceJSON(
+        this.scrutInfo,
+        exporterIpFound
+      );
+      this.doRequest(interfacesToSearch).then(interfaceDetails => {
         let i = 0;
         let interfaceJson = interfaceDetails.data;
 
-        
-        if(interfaces.length >0){
-          interfaces = []
+        if (interfaces.length > 0) {
+          interfaces = [];
         }
         for (i = 0; i < interfaceJson.rows.length; i++) {
-
           //add interfaces to the interface filter options
           interfaces.push(interfaceJson.rows[i][5].label);
-
         }
-        console.log(interfaces)
-        return resolve(interfaces)
+
+        return resolve(interfaces);
       });
-    })
-   
+    });
+  }
+  presentOptions(resolve) {
+    let params = makescrutJSON.exporterJSON(this.scrutInfo);
+    return this.doRequest(params).then(response => {
+      let exporterList = [
+        { text: "All Exporters" },
+        { text: "Device Group" },
+        { text: "Source IP Filter" }
+      ];
+      for (let i = 0; i < response.data.length; i++) {
+        exporterList.push({
+          text: response.data[i]["name"],
+          value: response.data[i]["ip"]
+        });
+      }
+
+      this.exporters = exporterList;
+      return resolve(exporterList);
+    });
   }
 
   getTagKeys(options) {
-    console.log("getting tag keys");
     return new Promise((resolve, reject) => {
-      return resolve([{ text: "Exporter" }, { text: "Interface" }]);
+      this.presentOptions(resolve);
     });
   }
 
   getTagValues(options) {
-    console.log("getting tag values")
+    console.log("getting tag values");
 
-    
-    if (options.key === "Exporter") {
-      return new Promise((resolve, reject) => {
-        return resolve(this.exporterList);
-      });
-    } else if (options.key === "Interface") {
-      return new Promise((resolve, reject) => {
-        
-        this.HandleAdhocFilters(resolve)
-      });
+    switch (options.key) {
+      case "Source IP Filter":
+        return new Promise((resolve, reject) => {
+          resolve();
+        });
+      default:
+        return new Promise((resolve, reject) => {
+          this.HandleAdhocFilters(resolve, options);
+        });
     }
   }
-
-
 }
