@@ -24,33 +24,27 @@ export class ScrutinizerJSON {
     }
 
   }
-  createParams(
-    authToken,
-    reportType,
-    startTime,
-    endTime,
-    ipAddress,
-    reportDirection,
-    expInterface,
-    reportFilter,
-    reportDisplay
-  ) {
-    let exporterInterface;
+// used for single query
+  createParams (scrut, options, query) {
+    let {authToken} = scrut;
+    let {reportType, reportDirection,reportInterface, target, reportFilters, reportDisplay} = query
+    let startTime = options["range"]["from"].unix()
+    let endTime = options["range"]["to"].unix()
     let scrutFilters;
+    let exporterInterface;
     let scrutDisplay;
-
-    if (expInterface === "allInterfaces") {
+    if (reportInterface === "allInterfaces") {
       exporterInterface = "_ALL";
     } else {
-      exporterInterface = expInterface;
+      exporterInterface = reportInterface;
     }
 
     //  if user wants all devices, then they are defualted to all interfaces
-    if (ipAddress === "allExporters") {
+    if (target === "allExporters") {
       scrutFilters = {
         sdfDips_0: `in_GROUP_ALL`
       };
-    } else if (ipAddress === "deviceGroup") {
+    } else if (target === "deviceGroup") {
       scrutFilters = {
         sdfDips_0: `in_GROUP_${exporterInterface}`
       };
@@ -58,17 +52,18 @@ export class ScrutinizerJSON {
       // if user wants a specific device, they can either have ALL interfaces, or a specific interface
       if (exporterInterface === "_ALL") {
         scrutFilters = {
-          sdfDips_0: `in_${ipAddress}_ALL`
+          sdfDips_0: `in_${target}_ALL`
         };
       } else {
         scrutFilters = {
-          sdfDips_0: `in_${ipAddress}_${ipAddress}-${exporterInterface}`
+          sdfDips_0: `in_${target}_${target}-${exporterInterface}`
         };
       }
     }
-    //if user is adding filters to the report.
-    if (reportFilter !== "No Filter") {
-      let filterJson = JSON.parse(reportFilter);
+
+    
+    if (reportFilters !== "No Filter") {
+      let filterJson = JSON.parse(reportFilters);
       for (var key in filterJson) {
         if (filterJson.hasOwnProperty(key)) {
           if (key != "sdfDips_0") {
@@ -77,29 +72,70 @@ export class ScrutinizerJSON {
         }
       }
     }
-    //percent vs bits check, these are passed into to the JSON for scrutinizer.
     if (reportDisplay === "percent") {
       scrutDisplay = { display: "custom_interfacepercent" };
     } else {
       scrutDisplay = { display: "sum_octetdeltacount" };
     }
 
+
+
     return {
-      authToken,
-      reportType,
-      startTime,
-      endTime,
-      ipAddress,
-      reportDirection,
-      expInterface: exporterInterface,
-      scrutFilters,
-      scrutDisplay
-    };
+        authToken,
+        reportType,
+        startTime,
+        endTime,
+        reportDirection,
+        scrutFilters,
+        scrutDisplay
+       
+  
+      }
+    
+     
+
+
   }
 
+// cused to create filter object for adhoc queries
+createAdhocFilters(filterObject) {
+  let reportFilters = {};
 
+  //if there are ip addres filters, add them
+  if (filterObject.sourceIp.length > 0) {
+    filterObject.sourceIp.forEach((element, index) => {
+      let filerCount = `sdfIps_${index}`;
+      reportFilters[filerCount] = `in_${element}_src`;
+    });
+  }
 
+  if (filterObject.destIp.length > 0) {
+    filterObject.destIp.forEach((element, index) => {
+      let filerCount = `sdfIps_${index}`;
+      reportFilters[filerCount] = `in_${element}_dst`;
+    });
+  }
 
+  if (filterObject.ports.length > 0) {
+    filterObject.ports.forEach((element, index) => {
+      let filerCount = `sdfSdPorts_${index}`;
+      reportFilters[filerCount] = `in_${element}_both`;
+    });
+  }
+  //there will always be exporter filters, add them.
+  filterObject.exporterDetails.forEach((element, index) => {
+    let { exporterIp, interfaceId } = element;
+    let filterCount = `sdfDips_${index}`;
+
+    reportFilters[
+      filterCount
+    ] = `in_${exporterIp}_${exporterIp}-${interfaceId}`;
+  });
+ 
+
+  return reportFilters;
+}
+  
   authJson(scrutInfo){
     return {
       url: scrutInfo['url'],

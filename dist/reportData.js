@@ -81,23 +81,32 @@ System.register(["lodash"], function (_export, _context) {
           }
         }, {
           key: "createParams",
-          value: function createParams(authToken, reportType, startTime, endTime, ipAddress, reportDirection, expInterface, reportFilter, reportDisplay) {
-            var exporterInterface = void 0;
-            var scrutFilters = void 0;
-            var scrutDisplay = void 0;
+          value: function createParams(scrut, options, query) {
+            var authToken = scrut.authToken;
+            var reportType = query.reportType,
+                reportDirection = query.reportDirection,
+                reportInterface = query.reportInterface,
+                target = query.target,
+                reportFilters = query.reportFilters,
+                reportDisplay = query.reportDisplay;
 
-            if (expInterface === "allInterfaces") {
+            var startTime = options["range"]["from"].unix();
+            var endTime = options["range"]["to"].unix();
+            var scrutFilters = void 0;
+            var exporterInterface = void 0;
+            var scrutDisplay = void 0;
+            if (reportInterface === "allInterfaces") {
               exporterInterface = "_ALL";
             } else {
-              exporterInterface = expInterface;
+              exporterInterface = reportInterface;
             }
 
             //  if user wants all devices, then they are defualted to all interfaces
-            if (ipAddress === "allExporters") {
+            if (target === "allExporters") {
               scrutFilters = {
                 sdfDips_0: "in_GROUP_ALL"
               };
-            } else if (ipAddress === "deviceGroup") {
+            } else if (target === "deviceGroup") {
               scrutFilters = {
                 sdfDips_0: "in_GROUP_" + exporterInterface
               };
@@ -105,17 +114,17 @@ System.register(["lodash"], function (_export, _context) {
               // if user wants a specific device, they can either have ALL interfaces, or a specific interface
               if (exporterInterface === "_ALL") {
                 scrutFilters = {
-                  sdfDips_0: "in_" + ipAddress + "_ALL"
+                  sdfDips_0: "in_" + target + "_ALL"
                 };
               } else {
                 scrutFilters = {
-                  sdfDips_0: "in_" + ipAddress + "_" + ipAddress + "-" + exporterInterface
+                  sdfDips_0: "in_" + target + "_" + target + "-" + exporterInterface
                 };
               }
             }
-            //if user is adding filters to the report.
-            if (reportFilter !== "No Filter") {
-              var filterJson = JSON.parse(reportFilter);
+
+            if (reportFilters !== "No Filter") {
+              var filterJson = JSON.parse(reportFilters);
               for (var key in filterJson) {
                 if (filterJson.hasOwnProperty(key)) {
                   if (key != "sdfDips_0") {
@@ -124,7 +133,6 @@ System.register(["lodash"], function (_export, _context) {
                 }
               }
             }
-            //percent vs bits check, these are passed into to the JSON for scrutinizer.
             if (reportDisplay === "percent") {
               scrutDisplay = { display: "custom_interfacepercent" };
             } else {
@@ -136,12 +144,49 @@ System.register(["lodash"], function (_export, _context) {
               reportType: reportType,
               startTime: startTime,
               endTime: endTime,
-              ipAddress: ipAddress,
               reportDirection: reportDirection,
-              expInterface: exporterInterface,
               scrutFilters: scrutFilters,
               scrutDisplay: scrutDisplay
+
             };
+          }
+        }, {
+          key: "createAdhocFilters",
+          value: function createAdhocFilters(filterObject) {
+            var reportFilters = {};
+
+            //if there are ip addres filters, add them
+            if (filterObject.sourceIp.length > 0) {
+              filterObject.sourceIp.forEach(function (element, index) {
+                var filerCount = "sdfIps_" + index;
+                reportFilters[filerCount] = "in_" + element + "_src";
+              });
+            }
+
+            if (filterObject.destIp.length > 0) {
+              filterObject.destIp.forEach(function (element, index) {
+                var filerCount = "sdfIps_" + index;
+                reportFilters[filerCount] = "in_" + element + "_dst";
+              });
+            }
+
+            if (filterObject.ports.length > 0) {
+              filterObject.ports.forEach(function (element, index) {
+                var filerCount = "sdfSdPorts_" + index;
+                reportFilters[filerCount] = "in_" + element + "_both";
+              });
+            }
+            //there will always be exporter filters, add them.
+            filterObject.exporterDetails.forEach(function (element, index) {
+              var exporterIp = element.exporterIp,
+                  interfaceId = element.interfaceId;
+
+              var filterCount = "sdfDips_" + index;
+
+              reportFilters[filterCount] = "in_" + exporterIp + "_" + exporterIp + "-" + interfaceId;
+            });
+
+            return reportFilters;
           }
         }, {
           key: "authJson",

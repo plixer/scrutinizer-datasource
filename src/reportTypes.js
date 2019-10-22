@@ -51,3 +51,18 @@ export const displayOptions = [
   }
 ];
 
+
+export const filterTypes = [
+  {
+    text: "Source IP Address",
+    value:"source"
+  }, 
+  {
+    text: "Destination IP Address",
+    value:"destination"
+  }, 
+  {
+    text: "Port Number",
+    value:"port"
+  }
+]

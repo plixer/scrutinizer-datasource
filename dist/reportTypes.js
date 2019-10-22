@@ -3,7 +3,7 @@
 System.register([], function (_export, _context) {
   "use strict";
 
-  var reportTypes, reportDirection, displayOptions;
+  var reportTypes, reportDirection, displayOptions, filterTypes;
   return {
     setters: [],
     execute: function () {
@@ -48,6 +48,19 @@ System.register([], function (_export, _context) {
       }]);
 
       _export("displayOptions", displayOptions);
+
+      _export("filterTypes", filterTypes = [{
+        text: "Source IP Address",
+        value: "source"
+      }, {
+        text: "Destination IP Address",
+        value: "destination"
+      }, {
+        text: "Port Number",
+        value: "port"
+      }]);
+
+      _export("filterTypes", filterTypes);
     }
   };
 });
