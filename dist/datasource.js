@@ -288,7 +288,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
                 //once all drop downs are selected, run the report.
                 if (_this.runReport == true) {
-                  console.log(query);
+
                   query.targets.forEach(function (query, index, array) {
                     var scrutParams = makescrutJSON.createParams(_this.scrutInfo, options, query);
                     //figure out the intervale time.
@@ -354,7 +354,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
               if (selectedIP === "deviceGroup") {
                 var params = makescrutJSON.groupJSON(this.scrutInfo["url"], this.scrutInfo["authToken"]);
-                console.log(params);
+
                 //if user selects Device Group we return a list of all groups available.
                 return this.doRequest(params).then(function (response) {
                   var i = 0;

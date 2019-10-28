@@ -368,7 +368,7 @@ export class GenericDatasource {
           this.scrutInfo["url"],
           this.scrutInfo["authToken"]
         );
-        console.log(params)
+        
         //if user selects Device Group we return a list of all groups available.
         return this.doRequest(params).then(response => {
           let i = 0;
