@@ -286,7 +286,7 @@ export class GenericDatasource {
 
         //once all drop downs are selected, run the report.
         if (this.runReport == true) {
-          console.log(query)
+          
           query.targets.forEach((query, index, array) => {
             let scrutParams = makescrutJSON.createParams(
               this.scrutInfo,
