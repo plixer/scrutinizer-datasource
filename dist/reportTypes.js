@@ -50,14 +50,14 @@ System.register([], function (_export, _context) {
       _export("displayOptions", displayOptions);
 
       _export("filterTypes", filterTypes = [{
-        text: "Source IP Address",
-        value: "source"
+        text: "Source IP Filter",
+        value: "sourceIp"
       }, {
-        text: "Destination IP Address",
-        value: "destination"
+        text: "Destination IP Filter",
+        value: "destIp"
       }, {
-        text: "Port Number",
-        value: "port"
+        text: "Add Port Filter",
+        value: "ports"
       }]);
 
       _export("filterTypes", filterTypes);

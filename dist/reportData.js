@@ -153,6 +153,7 @@ System.register(["lodash"], function (_export, _context) {
         }, {
           key: "createAdhocFilters",
           value: function createAdhocFilters(filterObject) {
+
             var reportFilters = {};
 
             //if there are ip addres filters, add them
@@ -181,9 +182,17 @@ System.register(["lodash"], function (_export, _context) {
               var exporterIp = element.exporterIp,
                   interfaceId = element.interfaceId;
 
-              var filterCount = "sdfDips_" + index;
 
-              reportFilters[filterCount] = "in_" + exporterIp + "_" + exporterIp + "-" + interfaceId;
+              var filterCount = "sdfDips_" + index;
+              if (exporterIp === "GROUP") {
+                reportFilters[filterCount] = "in_" + exporterIp + "_" + interfaceId;
+              } else if (exporterIp === "ALL") {
+                reportFilters[filterCount] = "in_" + exporterIp + "_" + interfaceId;
+              } else if (interfaceId != "ALL") {
+                reportFilters[filterCount] = "in_" + exporterIp + "_" + exporterIp + "-" + interfaceId;
+              } else if (exporterIp != "ALL" && exporterIp != "GROUP") {
+                reportFilters[filterCount] = "in_" + exporterIp + "_" + interfaceId;
+              }
             });
 
             return reportFilters;
@@ -217,7 +226,7 @@ System.register(["lodash"], function (_export, _context) {
         }, {
           key: "findExporter",
           value: function findExporter(scrutInfo, exporter) {
-            console.log(exporter);
+
             return {
               url: scrutInfo["url"],
               method: "GET",
@@ -276,30 +285,60 @@ System.register(["lodash"], function (_export, _context) {
         }, {
           key: "interfaceJSON",
           value: function interfaceJSON(scrutInfo, ipAddress) {
-            //params to figure out which interfaces exist for a device
-            return {
-              url: scrutInfo["url"],
-              method: "get",
-              params: {
-                rm: "status",
-                action: "get",
-                view: "topInterfaces",
-                authToken: scrutInfo["authToken"],
-                session_state: {
-                  client_time_zone: "America/New_York",
-                  order_by: [],
-                  search: [{
-                    column: "exporter_search",
-                    value: "" + ipAddress,
-                    comparison: "like",
-                    data: { filterType: "multi_string" },
-                    _key: "exporter_search_like_" + ipAddress
-                  }],
-                  query_limit: { offset: 0, max_num_rows: 50 },
-                  hostDisplayType: "dns"
+
+            if (ipAddress['key'] === "Device Group") {
+              var groupName = ipAddress['value'];
+              return {
+                url: scrutInfo['url'],
+                method: "get",
+
+                params: {
+                  rm: "mappingConfiguration",
+                  view: "mapping_configuration",
+                  authToken: scrutInfo["authToken"],
+                  session_state: {
+                    "client_time_zone": "America/New_York", "order_by": [],
+                    "search": [{
+                      "column": "name",
+                      "value": groupName,
+                      "comparison": "equal",
+                      "data": { "filterType": "string" }, "_key": "name_equal_Cisco" }],
+                    "query_limit": {
+                      "offset": 0, "max_num_rows": 50 }, "hostDisplayType": "dns" }
                 }
+              };
+            } else {
+              var exporterName = void 0;
+              if (ipAddress['value']) {
+                exporterName = ipAddress['value'];
+              } else {
+                exporterName = ipAddress;
               }
-            };
+
+              return {
+                url: scrutInfo["url"],
+                method: "get",
+                params: {
+                  rm: "status",
+                  action: "get",
+                  view: "topInterfaces",
+                  authToken: scrutInfo["authToken"],
+                  session_state: {
+                    client_time_zone: "America/New_York",
+                    order_by: [],
+                    search: [{
+                      column: "exporter_search",
+                      value: "" + exporterName,
+                      comparison: "like",
+                      data: { filterType: "multi_string" },
+                      _key: "exporter_search_like_" + exporterName
+                    }],
+                    query_limit: { offset: 0, max_num_rows: 50 },
+                    hostDisplayType: "dns"
+                  }
+                }
+              };
+            }
           }
         }, {
           key: "reportJSON",

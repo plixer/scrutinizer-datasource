@@ -99,6 +99,7 @@ export class ScrutinizerJSON {
 
 // cused to create filter object for adhoc queries
 createAdhocFilters(filterObject) {
+
   let reportFilters = {};
 
   //if there are ip addres filters, add them
@@ -124,12 +125,21 @@ createAdhocFilters(filterObject) {
   }
   //there will always be exporter filters, add them.
   filterObject.exporterDetails.forEach((element, index) => {
+    
     let { exporterIp, interfaceId } = element;
-    let filterCount = `sdfDips_${index}`;
 
-    reportFilters[
-      filterCount
-    ] = `in_${exporterIp}_${exporterIp}-${interfaceId}`;
+    let filterCount = `sdfDips_${index}`;
+    if(exporterIp === "GROUP"){
+      reportFilters[filterCount] = `in_${exporterIp}_${interfaceId}`
+    }else if (exporterIp === "ALL"){
+      reportFilters[filterCount] = `in_${exporterIp}_${interfaceId}`
+    } else if (interfaceId != "ALL")
+    {
+      reportFilters[filterCount] = `in_${exporterIp}_${exporterIp}-${interfaceId}`;
+    }else if (exporterIp != "ALL" && exporterIp != "GROUP"){
+      reportFilters[filterCount] = `in_${exporterIp}_${interfaceId}`
+    }
+    
   });
  
 
@@ -162,7 +172,7 @@ createAdhocFilters(filterObject) {
   };
 
   findExporter(scrutInfo, exporter) {
-    console.log(exporter)
+    
     return {
       url: scrutInfo["url"],
       method: "GET",
@@ -218,33 +228,74 @@ createAdhocFilters(filterObject) {
   };
 
   interfaceJSON(scrutInfo, ipAddress) {
-    //params to figure out which interfaces exist for a device
-    return {
-      url: scrutInfo["url"],
-      method: "get",
-      params: {
-        rm: "status",
-        action: "get",
-        view: "topInterfaces",
-        authToken: scrutInfo["authToken"],
-        session_state: {
-          client_time_zone: "America/New_York",
-          order_by: [],
-          search: [
-            {
-              column: "exporter_search",
-              value: `${ipAddress}`,
-              comparison: "like",
-              data: { filterType: "multi_string" },
-              _key: `exporter_search_like_${ipAddress}`
-            }
-          ],
-          query_limit: { offset: 0, max_num_rows: 50 },
-          hostDisplayType: "dns"
+    
+    if(ipAddress['key'] ==="Device Group"){
+      let groupName = ipAddress['value']
+      return {
+        url: scrutInfo['url'],
+        method:"get",
+        
+
+        params: {
+          rm: "mappingConfiguration",
+          view: "mapping_configuration",
+          authToken: scrutInfo["authToken"],
+          session_state:{
+            "client_time_zone":"America/New_York","order_by":[],
+            "search":[
+              {
+                "column":"name",
+                "value":groupName,
+                "comparison":"equal",
+                "data":
+                  {"filterType":"string"},"_key":"name_equal_Cisco"}
+                ],
+            "query_limit":{
+              "offset":0,"max_num_rows":50},"hostDisplayType":"dns"}
+          }
         }
+    } else {
+      let exporterName
+      if (ipAddress['value']) {
+        exporterName = ipAddress['value']
+      } else {
+        exporterName = ipAddress
       }
+      
+   
+      return {
+        url: scrutInfo["url"],
+        method: "get",
+        params: {
+          rm: "status",
+          action: "get",
+          view: "topInterfaces",
+          authToken: scrutInfo["authToken"],
+          session_state: {
+            client_time_zone: "America/New_York",
+            order_by: [],
+            search: [
+              {
+                column: "exporter_search",
+                value: `${exporterName}`,
+                comparison: "like",
+                data: { filterType: "multi_string" },
+                _key: `exporter_search_like_${exporterName}`
+              }
+            ],
+            query_limit: { offset: 0, max_num_rows: 50 },
+            hostDisplayType: "dns"
+          }
+        }
+      };
+    }
+    
+
     };
-  };
+    
+    //params to figure out which interfaces exist for a device
+   
+  
 
   reportJSON(scrutInfo, scrutParams) {
     //returning report params to be passed into request

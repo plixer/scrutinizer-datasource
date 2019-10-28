@@ -38,7 +38,7 @@ module.exports = function(grunt) {
       },
       dist: {
         options: {
-          plugins: ['transform-es2015-modules-systemjs', 'transform-es2015-for-of']
+          plugins: ['transform-es2015-modules-systemjs', 'transform-es2015-for-of', 'transform-object-rest-spread']
         },
         files: [{
           cwd: 'src',
