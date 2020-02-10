@@ -388,8 +388,7 @@ export class Handledata {
 
     let tableData =
       graphingData["report"]["graph"]["timeseries"][reportDirection];
-    console.log(graphData)
-    console.log(tableData)
+
     //if user is selecting bits, we need to multiple by 8, we also need to use the interval time.
     if (displayValue === "bits") {
       for (i = 0; i < tableData.length; i++) {
@@ -458,7 +457,7 @@ export class Handledata {
 
       }
     }
-    console.log(datatoGraph)
+
     return datatoGraph
     
   }

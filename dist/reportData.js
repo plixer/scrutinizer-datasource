@@ -438,8 +438,7 @@ System.register(["lodash"], function (_export, _context) {
             var graphData = graphingData["report"]["graph"]["pie"][reportDirection];
 
             var tableData = graphingData["report"]["graph"]["timeseries"][reportDirection];
-            console.log(graphData);
-            console.log(tableData);
+
             //if user is selecting bits, we need to multiple by 8, we also need to use the interval time.
             if (displayValue === "bits") {
               for (i = 0; i < tableData.length; i++) {
@@ -502,7 +501,7 @@ System.register(["lodash"], function (_export, _context) {
                 }
               }
             }
-            console.log(datatoGraph);
+
             return datatoGraph;
           }
         }]);
