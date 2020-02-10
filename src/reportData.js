@@ -363,10 +363,11 @@ export class Handledata {
   }
 
   formatData(scrutData, scrutParams, intervalTime, options) {
+
     //check if DNS resolve is on. 
     let dnsResolve = options.reportDNS
 
-    console.log(dnsResolve)
+
     let displayValue;
 
     if (scrutParams.scrutDisplay["display"] === "custom_interfacepercent") {
@@ -379,7 +380,7 @@ export class Handledata {
     //grafana wants time in millaseconds. so we multiple by 1000.
     //we also want to return data in bits, so we device by 8
     let datatoGraph = [];
-    let dnsDataToGraph = [];
+
     let graphingData = scrutData;
     let i,
       j = 0;
@@ -387,6 +388,8 @@ export class Handledata {
 
     let tableData =
       graphingData["report"]["graph"]["timeseries"][reportDirection];
+    console.log(graphData)
+    console.log(tableData)
     //if user is selecting bits, we need to multiple by 8, we also need to use the interval time.
     if (displayValue === "bits") {
       for (i = 0; i < tableData.length; i++) {
@@ -408,6 +411,7 @@ export class Handledata {
     }
 
     for (i = 0; i < graphData.length; i++) {
+
       let interfaceId;
       let interfaceDesc;
 
@@ -425,16 +429,15 @@ export class Handledata {
         //and Guage visualizations for interfaces, which is nice.
        
         if (graphData[i]["label"] != "Other") {
-          datatoGraph.push({
-            target:
-              interfaceDesc + "--" + graphData[i]["tooltip"][1][interfaceId],
-            datapoints: tableData[i]
-          });
-          dnsDataToGraph.push({
-            target:
-              interfaceDesc + "--" + graphData[i]["label_dns"][1][interfaceId]
- 
-          });
+          //check to make sure there is utilization data for interfaces.
+          if(tableData[i]){
+            datatoGraph.push({
+              target:
+                interfaceDesc + "--" + graphData[i]["tooltip"][1][interfaceId],
+              datapoints: tableData[i]
+            });
+          }
+
           
         }
       } else {
@@ -455,7 +458,7 @@ export class Handledata {
 
       }
     }
-
+    console.log(datatoGraph)
     return datatoGraph
     
   }

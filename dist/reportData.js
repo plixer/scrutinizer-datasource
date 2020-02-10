@@ -415,10 +415,10 @@ System.register(["lodash"], function (_export, _context) {
         _createClass(Handledata, [{
           key: "formatData",
           value: function formatData(scrutData, scrutParams, intervalTime, options) {
+
             //check if DNS resolve is on. 
             var dnsResolve = options.reportDNS;
 
-            console.log(dnsResolve);
             var displayValue = void 0;
 
             if (scrutParams.scrutDisplay["display"] === "custom_interfacepercent") {
@@ -431,13 +431,15 @@ System.register(["lodash"], function (_export, _context) {
             //grafana wants time in millaseconds. so we multiple by 1000.
             //we also want to return data in bits, so we device by 8
             var datatoGraph = [];
-            var dnsDataToGraph = [];
+
             var graphingData = scrutData;
             var i = void 0,
                 j = 0;
             var graphData = graphingData["report"]["graph"]["pie"][reportDirection];
 
             var tableData = graphingData["report"]["graph"]["timeseries"][reportDirection];
+            console.log(graphData);
+            console.log(tableData);
             //if user is selecting bits, we need to multiple by 8, we also need to use the interval time.
             if (displayValue === "bits") {
               for (i = 0; i < tableData.length; i++) {
@@ -459,6 +461,7 @@ System.register(["lodash"], function (_export, _context) {
             }
 
             for (i = 0; i < graphData.length; i++) {
+
               var interfaceId = void 0;
               var interfaceDesc = void 0;
 
@@ -476,14 +479,13 @@ System.register(["lodash"], function (_export, _context) {
                 //and Guage visualizations for interfaces, which is nice.
 
                 if (graphData[i]["label"] != "Other") {
-                  datatoGraph.push({
-                    target: interfaceDesc + "--" + graphData[i]["tooltip"][1][interfaceId],
-                    datapoints: tableData[i]
-                  });
-                  dnsDataToGraph.push({
-                    target: interfaceDesc + "--" + graphData[i]["label_dns"][1][interfaceId]
-
-                  });
+                  //check to make sure there is utilization data for interfaces.
+                  if (tableData[i]) {
+                    datatoGraph.push({
+                      target: interfaceDesc + "--" + graphData[i]["tooltip"][1][interfaceId],
+                      datapoints: tableData[i]
+                    });
+                  }
                 }
               } else {
 
@@ -500,7 +502,7 @@ System.register(["lodash"], function (_export, _context) {
                 }
               }
             }
-
+            console.log(datatoGraph);
             return datatoGraph;
           }
         }]);
