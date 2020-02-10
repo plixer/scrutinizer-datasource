@@ -414,7 +414,11 @@ System.register(["lodash"], function (_export, _context) {
 
         _createClass(Handledata, [{
           key: "formatData",
-          value: function formatData(scrutData, scrutParams, intervalTime) {
+          value: function formatData(scrutData, scrutParams, intervalTime, options) {
+            //check if DNS resolve is on. 
+            var dnsResolve = options.reportDNS;
+
+            console.log(dnsResolve);
             var displayValue = void 0;
 
             if (scrutParams.scrutDisplay["display"] === "custom_interfacepercent") {
@@ -427,10 +431,12 @@ System.register(["lodash"], function (_export, _context) {
             //grafana wants time in millaseconds. so we multiple by 1000.
             //we also want to return data in bits, so we device by 8
             var datatoGraph = [];
+            var dnsDataToGraph = [];
             var graphingData = scrutData;
             var i = void 0,
                 j = 0;
             var graphData = graphingData["report"]["graph"]["pie"][reportDirection];
+
             var tableData = graphingData["report"]["graph"]["timeseries"][reportDirection];
             //if user is selecting bits, we need to multiple by 8, we also need to use the interval time.
             if (displayValue === "bits") {
@@ -468,17 +474,30 @@ System.register(["lodash"], function (_export, _context) {
                 //this has to do with the relationship between totals and conversations.
                 //we don't need this data, so we toss it out. It makes it do we can use SingleStat
                 //and Guage visualizations for interfaces, which is nice.
+
                 if (graphData[i]["label"] != "Other") {
                   datatoGraph.push({
                     target: interfaceDesc + "--" + graphData[i]["tooltip"][1][interfaceId],
                     datapoints: tableData[i]
                   });
+                  dnsDataToGraph.push({
+                    target: interfaceDesc + "--" + graphData[i]["label_dns"][1][interfaceId]
+
+                  });
                 }
               } else {
-                datatoGraph.push({
-                  target: graphData[i]["label"],
-                  datapoints: tableData[i]
-                });
+
+                if (!dnsResolve) {
+                  datatoGraph.push({
+                    target: graphData[i]["label"],
+                    datapoints: tableData[i]
+                  });
+                } else {
+                  datatoGraph.push({
+                    target: graphData[i]["label_dns"],
+                    datapoints: tableData[i]
+                  });
+                }
               }
             }
 

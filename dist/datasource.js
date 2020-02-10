@@ -221,6 +221,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
                           //run a query for each gadget on the dashboard.
                           query.targets.forEach(function (eachQuery) {
+
                             var scrutParams = makescrutJSON.createFilters(_this.scrutInfo, options, reportFilter, eachQuery);
 
                             var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams);
@@ -232,7 +233,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                               //request for report data made to scrutinizer
                               _this.doRequest(params).then(function (response) {
                                 //data organized into how Grafana expects it.
-                                var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval);
+                                var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval, query);
 
                                 datatoGraph.push(formatedData);
                                 datatoGraph = [].concat.apply([], datatoGraph);
@@ -265,7 +266,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                           scrutParams.scrutFilters = merged;
                           var params = makescrutJSON.reportJSON(_this.scrutInfo, scrutParams);
                           _this.doRequest(params).then(function (response) {
-                            var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval);
+                            var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval, query);
 
                             datatoGraph.push(formatedData);
                             datatoGraph = [].concat.apply([], datatoGraph);
@@ -299,14 +300,17 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                       //set up JSON to go to Scrutinizer API
                       var params = makescrutJSON.reportJSON(_this.scrutInfo, scrutParams);
                       _this.doRequest(params).then(function (response) {
-                        var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval);
+
+                        var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval, query);
 
                         datatoGraph.push(formatedData);
+
                         datatoGraph = [].concat.apply([], datatoGraph);
 
                         numberOfQueries++;
                         //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
                         if (numberOfQueries === array.length) {
+
                           return resolve({ data: datatoGraph });
                         }
                       });
@@ -441,6 +445,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             });
 
             var targets = _.map(options.targets, function (target) {
+
               return {
                 target: _this3.templateSrv.replace(target.target, options.scopedVars, "regex"),
                 refId: target.refId,
@@ -455,7 +460,9 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
                 reportFilters: _this3.templateSrv.replace(target.filters || "No Filter", options.scopedVars, "regex"),
 
-                reportDisplay: _this3.templateSrv.replace(target.display || "No Display", options.scopedVars, "regex")
+                reportDisplay: _this3.templateSrv.replace(target.display || "No Display", options.scopedVars, "regex"),
+
+                reportDNS: target.dns
               };
             });
 

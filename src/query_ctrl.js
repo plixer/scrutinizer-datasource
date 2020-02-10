@@ -12,7 +12,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.direction = this.target.direction || 'Select Direction';
     this.target.interface = this.target.interface || 'Select Interface';
     this.target.type = this.target.type || 'timeserie';
-    this.target.filters = this.target.filters 
+    this.target.filters = this.target.filters;
+    this.target.dns = false; 
 
   }
   //each drop down gets a function that is called by the datasource. 
@@ -22,7 +23,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
   }
 
   getInterfaces(query) {
-    
+    console.log(query)
+
     return this.datasource.findInterfaces(query || '', this.scope)
   }
   toggleEditorMode() {
@@ -50,6 +52,14 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
   applyFilter() {
     return this.datasource.applyFilter(this.scope, this.panelCtrl)
+  }
+
+  resolveDNS() {
+
+    this.target.dns = !this.target.dns
+    this.panelCtrl.refresh()
+
+
   }
 
 

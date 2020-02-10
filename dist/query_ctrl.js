@@ -75,6 +75,7 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           _this.target.interface = _this.target.interface || 'Select Interface';
           _this.target.type = _this.target.type || 'timeserie';
           _this.target.filters = _this.target.filters;
+          _this.target.dns = false;
 
           return _this;
         }
@@ -90,6 +91,7 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
         }, {
           key: 'getInterfaces',
           value: function getInterfaces(query) {
+            console.log(query);
 
             return this.datasource.findInterfaces(query || '', this.scope);
           }
@@ -125,6 +127,13 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           key: 'applyFilter',
           value: function applyFilter() {
             return this.datasource.applyFilter(this.scope, this.panelCtrl);
+          }
+        }, {
+          key: 'resolveDNS',
+          value: function resolveDNS() {
+
+            this.target.dns = !this.target.dns;
+            this.panelCtrl.refresh();
           }
         }]);
 

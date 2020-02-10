@@ -76,6 +76,14 @@
         </div>
       </div>
 
+      <div ng-if="!ctrl.target.rawQuery" >
+
+        <gf-form-checkbox class="gf-form" label="Resolve DNS" checked = "false" on-change="ctrl.resolveDNS()" ng-model="ctrl.target.dns">
+          <div class="gf-form-label width-11" ng-show="ctrl.label"></div> 
+        
+        </gf-form-checkbox>
+      </div>
+
 <gf-form-checkbox class="gf-form"  label="Add Filter" tooltip="Used to add filters to the Scrutinizer Report" checked="current.jsonData.tlsAuthWithCACert" label-class="width-11" switch-class="max-width-6">
 <label for="check-101" class="gf-form-switch-container">
  <div class="gf-form-label width-11" ng-show="ctrl.label">

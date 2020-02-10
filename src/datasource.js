@@ -44,6 +44,8 @@ export class GenericDatasource {
   }
 
   query(options) {
+    
+
     //store number of queries being run, make sure to run a Scrutinizer request for each query made.
     let numberOfQueries = 0;
     //data sent up into this list, it's returned at end.
@@ -179,6 +181,7 @@ export class GenericDatasource {
    
                   //run a query for each gadget on the dashboard.
                   query.targets.forEach(eachQuery => {
+
                     let scrutParams = makescrutJSON.createFilters(
                       this.scrutInfo,
                       options,
@@ -205,7 +208,8 @@ export class GenericDatasource {
                         let formatedData = dataHandler.formatData(
                           response.data,
                           scrutParams,
-                          selectedInterval
+                          selectedInterval, 
+                          query
                         );
 
                         datatoGraph.push(formatedData);
@@ -256,7 +260,8 @@ export class GenericDatasource {
                   let formatedData = dataHandler.formatData(
                     response.data,
                     scrutParams,
-                    selectedInterval
+                    selectedInterval,
+                    query
                   );
 
                   datatoGraph.push(formatedData);
@@ -308,18 +313,22 @@ export class GenericDatasource {
                 scrutParams
               );
               this.doRequest(params).then(response => {
+
                 let formatedData = dataHandler.formatData(
                   response.data,
                   scrutParams,
-                  selectedInterval
+                  selectedInterval,
+                  query
                 );
-
+                
                 datatoGraph.push(formatedData);
+         
                 datatoGraph = [].concat.apply([], datatoGraph);
-
+                
                 numberOfQueries++;
                 //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
                 if (numberOfQueries === array.length) {
+          
                   return resolve({ data: datatoGraph });
                 }
               });
@@ -455,6 +464,7 @@ export class GenericDatasource {
     });
 
     var targets = _.map(options.targets, target => {
+
       return {
         target: this.templateSrv.replace(
           target.target,
@@ -493,7 +503,9 @@ export class GenericDatasource {
           target.display || "No Display",
           options.scopedVars,
           "regex"
-        )
+        ),
+
+        reportDNS: target.dns
       };
     });
 
