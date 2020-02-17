@@ -4,7 +4,9 @@ import {
   reportTypes,
   reportDirection,
   displayOptions,
-  filterTypes
+  filterTypes,
+  displayDNS,
+  displayOthers
 } from "./reportTypes";
 
 let makescrutJSON = new ScrutinizerJSON();
@@ -33,6 +35,8 @@ export class GenericDatasource {
 
     this.exporters = [];
     this.filterTypes = filterTypes;
+    this.displayDNS = displayDNS;
+    this.displayOthers = displayOthers;
 
     this.filters = "";
 
@@ -41,10 +45,13 @@ export class GenericDatasource {
       authToken: instanceSettings.jsonData["scrutinizerKey"]
     };
     this.exporterList = this.exporterList();
+
+    this.others = false
   }
 
   query(options) {
-    
+
+
 
     //store number of queries being run, make sure to run a Scrutinizer request for each query made.
     let numberOfQueries = 0;
@@ -212,11 +219,22 @@ export class GenericDatasource {
                           query
                         );
 
-                        datatoGraph.push(formatedData);
+                        let noOthers;
+                        //add ability to filter out other traffic if desired. 
+
+                        if (query.hideOthers) {
+                          noOthers = formatedData.filter((data)=>{
+                            return data['target'] != 'Other'
+                              })
+                          datatoGraph.push(noOthers);
+                        } else {
+                          datatoGraph.push(formatedData);
+                        }
                         datatoGraph = [].concat.apply([], datatoGraph);
                         numberOfQueries++;
                         //make sure we have gone through each query in a gadget.
-                        if (numberOfQueries === query.targets.length) {
+                        if (numberOfQueries === array.length) {
+
                           return resolve({ data: datatoGraph });
                         }
                       });
@@ -264,12 +282,23 @@ export class GenericDatasource {
                     query
                   );
 
-                  datatoGraph.push(formatedData);
+                  let noOthers;
+
+                  //add ability to filter out other traffic if desired. 
+                  if (query.hideOthers) {
+                    noOthers = formatedData.filter((data)=>{
+                      return data['target'] != 'Other'
+                        })
+                    datatoGraph.push(noOthers);
+                  } else {
+                    datatoGraph.push(formatedData);
+                  }
                   datatoGraph = [].concat.apply([], datatoGraph);
 
                   numberOfQueries++;
                   //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
                   if (numberOfQueries === array.length) {
+
                     return resolve({ data: datatoGraph });
                   }
                 });
@@ -320,15 +349,27 @@ export class GenericDatasource {
                   selectedInterval,
                   query
                 );
+                console.log(query)
+
+                let noOthers;
+
+                //add ability to filter out other traffic if desired. 
+                if (query.hideOthers) {
+                  noOthers = formatedData.filter((data)=>{
+                    return data['target'] != 'Other'
+                      })
+                  datatoGraph.push(noOthers);
+                } else {
+                  datatoGraph.push(formatedData);
+                }
                 
-                datatoGraph.push(formatedData);
          
                 datatoGraph = [].concat.apply([], datatoGraph);
                 
                 numberOfQueries++;
                 //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
                 if (numberOfQueries === array.length) {
-          
+
                   return resolve({ data: datatoGraph });
                 }
               });
@@ -339,8 +380,15 @@ export class GenericDatasource {
     });
   }
 
+  showOtherTraffic(){
+
+    this.others = !this.others
+
+
+  }
+
   testDatasource() {
-    console.log("Running Test");
+
     let params = makescrutJSON.authJson(this.scrutInfo);
 
     return this.doRequest(params).then(response => {
@@ -365,7 +413,7 @@ export class GenericDatasource {
   }
 
   findInterfaces(options, scope) {
-    console.log("running find interfaces");
+
     let query = this.liveQuery;
 
     if (query.targets) {
@@ -419,14 +467,14 @@ export class GenericDatasource {
   }
 
   applyFilter(scope, refresh) {
-    console.log("running apply filters");
+
     this.filters = scope.ctrl.target.filters;
     refresh.refresh();
   }
 
   //gets all exporters available. Will use DNS resolve by default and fail back to IP of exporter.
   getExporters() {
-    console.log("running get exporters");
+
     return this.exporters;
   }
 
@@ -459,6 +507,7 @@ export class GenericDatasource {
   //function from simplejsondatasource, used to take values from drop downs and add to query.
   //When adding a new dropdown you need to update this function.
   buildQueryParameters(options) {
+    console.log(options)
     options.targets = _.filter(options.targets, target => {
       return target.target !== "select metric";
     });
@@ -505,7 +554,8 @@ export class GenericDatasource {
           "regex"
         ),
 
-        reportDNS: target.dns
+        reportDNS: target.dns,
+        hideOthers:target.hideOthers
       };
     });
 
@@ -627,7 +677,7 @@ export class GenericDatasource {
   }
 
   getTagValues(options) {
-    console.log("getting tag values");
+
   
     switch (options.key) {
       case "Source IP Filter":

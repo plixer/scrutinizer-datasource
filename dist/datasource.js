@@ -3,7 +3,7 @@
 System.register(["lodash", "./reportData", "./reportTypes"], function (_export, _context) {
   "use strict";
 
-  var _, ScrutinizerJSON, Handledata, reportTypes, reportDirection, displayOptions, filterTypes, _extends, _createClass, makescrutJSON, dataHandler, GenericDatasource;
+  var _, ScrutinizerJSON, Handledata, reportTypes, reportDirection, displayOptions, filterTypes, displayDNS, displayOthers, _extends, _createClass, makescrutJSON, dataHandler, GenericDatasource;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -22,6 +22,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
       reportDirection = _reportTypes.reportDirection;
       displayOptions = _reportTypes.displayOptions;
       filterTypes = _reportTypes.filterTypes;
+      displayDNS = _reportTypes.displayDNS;
+      displayOthers = _reportTypes.displayOthers;
     }],
     execute: function () {
       _extends = Object.assign || function (target) {
@@ -81,6 +83,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
           this.exporters = [];
           this.filterTypes = filterTypes;
+          this.displayDNS = displayDNS;
+          this.displayOthers = displayOthers;
 
           this.filters = "";
 
@@ -89,6 +93,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             authToken: instanceSettings.jsonData["scrutinizerKey"]
           };
           this.exporterList = this.exporterList();
+
+          this.others = false;
         }
 
         _createClass(GenericDatasource, [{
@@ -235,11 +241,22 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                                 //data organized into how Grafana expects it.
                                 var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval, query);
 
-                                datatoGraph.push(formatedData);
+                                var noOthers = void 0;
+                                //add ability to filter out other traffic if desired. 
+
+                                if (query.hideOthers) {
+                                  noOthers = formatedData.filter(function (data) {
+                                    return data['target'] != 'Other';
+                                  });
+                                  datatoGraph.push(noOthers);
+                                } else {
+                                  datatoGraph.push(formatedData);
+                                }
                                 datatoGraph = [].concat.apply([], datatoGraph);
                                 numberOfQueries++;
                                 //make sure we have gone through each query in a gadget.
-                                if (numberOfQueries === query.targets.length) {
+                                if (numberOfQueries === array.length) {
+
                                   return resolve({ data: datatoGraph });
                                 }
                               });
@@ -268,12 +285,23 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                           _this.doRequest(params).then(function (response) {
                             var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval, query);
 
-                            datatoGraph.push(formatedData);
+                            var noOthers = void 0;
+
+                            //add ability to filter out other traffic if desired. 
+                            if (query.hideOthers) {
+                              noOthers = formatedData.filter(function (data) {
+                                return data['target'] != 'Other';
+                              });
+                              datatoGraph.push(noOthers);
+                            } else {
+                              datatoGraph.push(formatedData);
+                            }
                             datatoGraph = [].concat.apply([], datatoGraph);
 
                             numberOfQueries++;
                             //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
                             if (numberOfQueries === array.length) {
+
                               return resolve({ data: datatoGraph });
                             }
                           });
@@ -302,8 +330,19 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                       _this.doRequest(params).then(function (response) {
 
                         var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval, query);
+                        console.log(query);
 
-                        datatoGraph.push(formatedData);
+                        var noOthers = void 0;
+
+                        //add ability to filter out other traffic if desired. 
+                        if (query.hideOthers) {
+                          noOthers = formatedData.filter(function (data) {
+                            return data['target'] != 'Other';
+                          });
+                          datatoGraph.push(noOthers);
+                        } else {
+                          datatoGraph.push(formatedData);
+                        }
 
                         datatoGraph = [].concat.apply([], datatoGraph);
 
@@ -321,9 +360,15 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             });
           }
         }, {
+          key: "showOtherTraffic",
+          value: function showOtherTraffic() {
+
+            this.others = !this.others;
+          }
+        }, {
           key: "testDatasource",
           value: function testDatasource() {
-            console.log("Running Test");
+
             var params = makescrutJSON.authJson(this.scrutInfo);
 
             return this.doRequest(params).then(function (response) {
@@ -349,7 +394,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
         }, {
           key: "findInterfaces",
           value: function findInterfaces(options, scope) {
-            console.log("running find interfaces");
+
             var query = this.liveQuery;
 
             if (query.targets) {
@@ -398,14 +443,14 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
         }, {
           key: "applyFilter",
           value: function applyFilter(scope, refresh) {
-            console.log("running apply filters");
+
             this.filters = scope.ctrl.target.filters;
             refresh.refresh();
           }
         }, {
           key: "getExporters",
           value: function getExporters() {
-            console.log("running get exporters");
+
             return this.exporters;
           }
         }, {
@@ -440,6 +485,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           value: function buildQueryParameters(options) {
             var _this3 = this;
 
+            console.log(options);
             options.targets = _.filter(options.targets, function (target) {
               return target.target !== "select metric";
             });
@@ -462,7 +508,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
                 reportDisplay: _this3.templateSrv.replace(target.display || "No Display", options.scopedVars, "regex"),
 
-                reportDNS: target.dns
+                reportDNS: target.dns,
+                hideOthers: target.hideOthers
               };
             });
 
@@ -575,8 +622,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           key: "getTagValues",
           value: function getTagValues(options) {
             var _this8 = this;
-
-            console.log("getting tag values");
 
             switch (options.key) {
               case "Source IP Filter":

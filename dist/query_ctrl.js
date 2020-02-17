@@ -75,7 +75,8 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           _this.target.interface = _this.target.interface || 'Select Interface';
           _this.target.type = _this.target.type || 'timeserie';
           _this.target.filters = _this.target.filters;
-          _this.target.dns = false;
+          _this.target.dns = _this.target.resolveDNS;
+          _this.target.hideOthers = _this.target.showOthers;
 
           return _this;
         }
@@ -91,7 +92,6 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
         }, {
           key: 'getInterfaces',
           value: function getInterfaces(query) {
-            console.log(query);
 
             return this.datasource.findInterfaces(query || '', this.scope);
           }
@@ -107,19 +107,19 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           }
         }, {
           key: 'getReports',
-          value: function getReports(query) {
+          value: function getReports() {
 
             return this.datasource.reportOptions;
           }
         }, {
           key: 'getDisplay',
-          value: function getDisplay(query) {
+          value: function getDisplay() {
 
             return this.datasource.displayOptions;
           }
         }, {
           key: 'getDirection',
-          value: function getDirection(query) {
+          value: function getDirection() {
 
             return this.datasource.reportDirections;
           }
@@ -133,6 +133,14 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           value: function resolveDNS() {
 
             this.target.dns = !this.target.dns;
+            this.panelCtrl.refresh();
+          }
+        }, {
+          key: 'hideOthers',
+          value: function hideOthers() {
+
+            this.target.hideOthers = !this.target.hideOthers;
+
             this.panelCtrl.refresh();
           }
         }]);

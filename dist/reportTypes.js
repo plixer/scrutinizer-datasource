@@ -3,7 +3,7 @@
 System.register([], function (_export, _context) {
   "use strict";
 
-  var reportTypes, reportDirection, displayOptions, filterTypes;
+  var reportTypes, reportDirection, displayOptions, filterTypes, displayDNS, displayOthers;
   return {
     setters: [],
     execute: function () {
@@ -61,6 +61,26 @@ System.register([], function (_export, _context) {
       }]);
 
       _export("filterTypes", filterTypes);
+
+      _export("displayDNS", displayDNS = [{
+        text: "yes",
+        value: true
+      }, {
+        text: "no",
+        value: false
+      }]);
+
+      _export("displayDNS", displayDNS);
+
+      _export("displayOthers", displayOthers = [{
+        text: "yes",
+        value: true
+      }, {
+        text: "no",
+        value: false
+      }]);
+
+      _export("displayOthers", displayOthers);
     }
   };
 });

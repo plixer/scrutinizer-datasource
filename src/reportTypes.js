@@ -66,3 +66,28 @@ export const filterTypes = [
     value:"ports"
   }
 ]
+
+
+
+export const displayDNS = [
+  {
+    text: "yes",
+    value:true
+  }, 
+  {
+    text: "no",
+    value:false
+  },
+]
+
+
+export const displayOthers = [
+  {
+    text: "yes",
+    value:true
+  }, 
+  {
+    text: "no",
+    value:false
+  },
+]

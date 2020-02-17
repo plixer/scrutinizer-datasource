@@ -365,7 +365,8 @@ System.register(["lodash"], function (_export, _context) {
                   filters: scrutParams.scrutFilters,
                   dataGranularity: {
                     selected: "auto"
-                  }
+                  },
+                  showOthers: 0
                 }),
 
                 data_requested: _defineProperty({}, scrutParams.reportDirection, {

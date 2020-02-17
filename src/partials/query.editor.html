@@ -1,119 +1,169 @@
-<query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="true">
+<query-editor-row
+  query-ctrl="ctrl"
+  class="generic-datasource-query-row"
+  has-text-edit-mode="true"
+>
   <div class="gf-form-inline">
-
     <div class="gf-form" ng-if="ctrl.target.rawQuery">
-      <textarea class="gf-form-input" rows="5" ng-model="ctrl.target.target" spellcheck="false" ng-blur="ctrl.onChangeInternal()" />
+      <textarea
+        class="gf-form-input"
+        rows="5"
+        ng-model="ctrl.target.target"
+        spellcheck="false"
+        ng-blur="ctrl.onChangeInternal()"
+      />
     </div>
 
     <div ng-if="!ctrl.target.rawQuery">
       <div class="gf-form">
-        <gf-form-dropdown model="ctrl.target.target"
+        <gf-form-dropdown
+          model="ctrl.target.target"
           allow-custom="true"
           lookup-text="true"
           get-options="ctrl.getOptions($query)"
-          on-change="ctrl.onChangeInternal()">
+          on-change="ctrl.onChangeInternal()"
+        >
+        </gf-form-dropdown>
+      </div>
+    </div>
+
+    <div ng-if="!ctrl.target.rawQuery">
+      <div class="gf-form">
+        <gf-form-dropdown
+          model="ctrl.target.interface"
+          allow-custom="true"
+          lookup-text="true"
+          get-options="ctrl.getInterfaces($query)"
+          on-change="ctrl.onChangeInternal()"
+        >
+        </gf-form-dropdown>
+      </div>
+    </div>
+
+    <div ng-if="!ctrl.target.rawQuery">
+      <div class="gf-form">
+        <gf-form-dropdown
+          model="ctrl.target.report"
+          allow-custom="true"
+          lookup-text="true"
+          get-options="ctrl.getReports($query)"
+          on-change="ctrl.onChangeInternal()"
+        >
+        </gf-form-dropdown>
+      </div>
+    </div>
+    <div ng-if="ctrl.target.report === 'interfaces'">
+      <div class="gf-form">
+        <gf-form-dropdown
+          model="ctrl.target.display"
+          allow-custom="true"
+          lookup-text="true"
+          get-options="ctrl.getDisplay($query)"
+          on-change="ctrl.onChangeInternal()"
+        >
+        </gf-form-dropdown>
+      </div>
+    </div>
+
+    <div class="gf-form">
+      <gf-form-dropdown
+        model="ctrl.target.direction"
+        allow-custom="true"
+        lookup-text="true"
+        get-options="ctrl.getDirection($query)"
+        on-change="ctrl.onChangeInternal()"
+      >
       </gf-form-dropdown>
-      </div>
     </div>
 
-    <div class="gf-form" ng-if="ctrl.target.rawQuery">
-        <textarea class="gf-form-input" rows="5" ng-model="ctrl.target.interface" spellcheck="false" ng-blur="ctrl.onChangeInternal()" />
-      </div>
-  
-      <div ng-if="!ctrl.target.rawQuery">
-        <div class="gf-form">
-          <gf-form-dropdown model="ctrl.target.interface"
-            allow-custom="true"
-            lookup-text="true"
-            get-options="ctrl.getInterfaces($query)"
-            on-change="ctrl.onChangeInternal()">
-        </gf-form-dropdown>
-        </div>
-      </div>
-
-    <div class="gf-form" ng-if="ctrl.target.rawQuery">
-        <textarea class="gf-form-input" rows="5" ng-model="ctrl.target.report" spellcheck="false" ng-blur="ctrl.onChangeInternal()" 
-        />
-      </div>
-  
-      <div ng-if="!ctrl.target.rawQuery">
-        <div class="gf-form">
-          <gf-form-dropdown model="ctrl.target.report"
-            allow-custom="true"
-            lookup-text="true"
-            get-options="ctrl.getReports($query)"
-            on-change="ctrl.onChangeInternal()">
-        </gf-form-dropdown>
-        </div>
-      </div>
-
-
-
-      <div ng-if="ctrl.target.report === 'interfaces'">
-        <div class="gf-form">
-          <gf-form-dropdown model="ctrl.target.display"
-            allow-custom="true"
-            lookup-text="true"
-            get-options="ctrl.getDisplay($query)"
-            on-change="ctrl.onChangeInternal()">
-        </gf-form-dropdown>
-        </div>
-      </div> 
-    
-      <div class="gf-form" ng-if="ctrl.target.rawQuery">
-        <textarea class="gf-form-input" rows="5" ng-model="ctrl.target.direction" spellcheck="false" ng-blur="ctrl.onChangeInternal()" 
-        />
-      </div>
-  
-      <div ng-if="!ctrl.target.rawQuery">
-        <div class="gf-form">
-          <gf-form-dropdown model="ctrl.target.direction"
-            allow-custom="true"
-            lookup-text="true"
-            get-options="ctrl.getDirection($query)"
-            on-change="ctrl.onChangeInternal()">
-        </gf-form-dropdown>
-        </div>
-      </div>
-
-      <div ng-if="!ctrl.target.rawQuery" >
-
-        <gf-form-checkbox class="gf-form" label="Resolve DNS" checked = "false" on-change="ctrl.resolveDNS()" ng-model="ctrl.target.dns">
-          <div class="gf-form-label width-11" ng-show="ctrl.label"></div> 
-        
-        </gf-form-checkbox>
-      </div>
-
-<gf-form-checkbox class="gf-form"  label="Add Filter" tooltip="Used to add filters to the Scrutinizer Report" checked="current.jsonData.tlsAuthWithCACert" label-class="width-11" switch-class="max-width-6">
-<label for="check-101" class="gf-form-switch-container">
- <div class="gf-form-label width-11" ng-show="ctrl.label">
-  Add Filter
-  <!----><info-popover mode="right-normal" ng-if="ctrl.tooltip" position="top center" class="gf-form-help-icon gf-form-help-icon--right-normal drop-help drop-hide-out-of-bounds drop-target"><i class="fa fa-info-circle"></i></info-popover><!---->
-</div>
-<!----><div class="gf-form-checkbox max-width-6" ng-if="ctrl.show">
-  <input id="check-101" type="checkbox" ng-model="ctrl.checked" ng-change="ctrl.internalOnChange()" class="ng-valid ng-dirty ng-valid-parse ng-touched ng-empty">
-  <span class="gf-form-switch__checkbox"></span>
-</div><!---->
-</label>
-</gf-form-checkbox>
-
-
-
-  
-    </div>
-    <div ng-if="current.jsonData.tlsAuthWithCACert">
-        <div class="gf-form-inline">
-          <div class="gf-form gf-form--v-stretch"><button class="btn navbar-button" ng-click="ctrl.applyFilter()">Apply Filter</button>
-           </div>
-           <div class="gf-form-inline"> </div>
-          <!----><div class="gf-form gf-form--grow" ng-if="!current.secureJsonFields.tlsCACert">
-            <textarea rows="5" class="gf-form-input gf-form-textarea ng-pristine ng-untouched ng-valid ng-empty" ng-model="ctrl.target.filters" placeholder="please check scrutinizer api reccomendations for adding filters for example &#x0a; &quot;sdfIps_0&quot;: &quot;in_8.8.8.8_Both&quot; would apply a ip address filter for 8.8.8.8"></textarea>
-          </div><!---->
-          
+    <gf-form-switch
+      class="gf-form"
+      label="Resolve DNS"
+      checked="ctrl.target.resolveDNS"
+      on-change="ctrl.resolveDNS()"
+    >
+      <label for="check-78" class="gf-form-switch-container">
+        <div class="gf-form-label query-keyword" ng-show="ctrl.label">
+          Resolve DNS
           <!---->
         </div>
+      </label>
+    </gf-form-switch>
 
-        
+    <gf-form-switch
+      class="gf-form"
+      label="Hide Others"
+      checked="ctrl.target.showOthers"
+      on-change="ctrl.hideOthers()"
+    >
+      <label for="check-78" class="gf-form-switch-container">
+        <div class="gf-form-label query-keyword" ng-show="ctrl.label">
+          Hide Others
+          <!---->
+        </div>
+        <!---->
+
+        <!---->
+      </label>
+    </gf-form-switch>
+
+    <gf-form-checkbox
+      class="gf-form"
+      label="Add Filter"
+      tooltip="Used to add filters to the Scrutinizer Report"
+      checked="false"
+      label-class="width-11"
+      switch-class="max-width-6"
+    >
+      <label for="check-101" class="gf-form-switch-container">
+        <div class="gf-form-label width-11" ng-show="ctrl.label">
+          Add Filter
+          <!----><info-popover
+            mode="right-normal"
+            ng-if="ctrl.tooltip"
+            position="top center"
+            class="gf-form-help-icon gf-form-help-icon--right-normal drop-help drop-hide-out-of-bounds drop-target"
+            ><i class="fa fa-info-circle"></i></info-popover
+          ><!---->
+        </div>
+        <!---->
+        <div class="gf-form-checkbox max-width-6" ng-if="ctrl.show">
+          <input
+            id="check-101"
+            type="checkbox"
+            ng-model="ctrl.checked"
+            ng-change="ctrl.internalOnChange()"
+            class="ng-valid ng-dirty ng-valid-parse ng-touched ng-empty"
+          />
+          <span class="gf-form-switch__checkbox"></span>
+        </div>
+        <!---->
+      </label>
+    </gf-form-checkbox>
+  </div>
+  <div ng-if="current.jsonData.tlsAuthWithCACert">
+    <div class="gf-form-inline">
+      <div class="gf-form gf-form--v-stretch">
+        <button class="btn navbar-button" ng-click="ctrl.applyFilter()">
+          Apply Filter
+        </button>
       </div>
+      <div class="gf-form-inline"></div>
+      <!---->
+      <div
+        class="gf-form gf-form--grow"
+        ng-if="!current.secureJsonFields.tlsCACert"
+      >
+        <textarea
+          rows="5"
+          class="gf-form-input gf-form-textarea ng-pristine ng-untouched ng-valid ng-empty"
+          ng-model="ctrl.target.filters"
+          placeholder='please check scrutinizer api reccomendations for adding filters for example &#x0a; "sdfIps_0": "in_8.8.8.8_Both" would apply a ip address filter for 8.8.8.8'
+        ></textarea>
+      </div>
+      <!---->
 
+      <!---->
+    </div>
+  </div>
 </query-editor-row>

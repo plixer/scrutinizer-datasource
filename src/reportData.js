@@ -320,7 +320,8 @@ createAdhocFilters(filterObject) {
           filters: scrutParams.scrutFilters,
           dataGranularity: {
             selected: "auto"
-          }
+          },
+          showOthers: 0
         }),
   
         data_requested: {
