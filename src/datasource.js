@@ -4,9 +4,7 @@ import {
   reportTypes,
   reportDirection,
   displayOptions,
-  filterTypes,
-  displayDNS,
-  displayOthers
+  filterTypes
 } from "./reportTypes";
 
 let makescrutJSON = new ScrutinizerJSON();
@@ -35,8 +33,7 @@ export class GenericDatasource {
 
     this.exporters = [];
     this.filterTypes = filterTypes;
-    this.displayDNS = displayDNS;
-    this.displayOthers = displayOthers;
+
 
     this.filters = "";
 
@@ -52,7 +49,7 @@ export class GenericDatasource {
   query(options) {
 
 
-
+    console.log('hello')
     //store number of queries being run, make sure to run a Scrutinizer request for each query made.
     let numberOfQueries = 0;
     //data sent up into this list, it's returned at end.
@@ -349,7 +346,7 @@ export class GenericDatasource {
                   selectedInterval,
                   query
                 );
-                console.log(query)
+     
 
                 let noOthers;
 
@@ -507,7 +504,7 @@ export class GenericDatasource {
   //function from simplejsondatasource, used to take values from drop downs and add to query.
   //When adding a new dropdown you need to update this function.
   buildQueryParameters(options) {
-    console.log(options)
+
     options.targets = _.filter(options.targets, target => {
       return target.target !== "select metric";
     });

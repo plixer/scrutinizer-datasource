@@ -3,7 +3,7 @@
 System.register(["lodash", "./reportData", "./reportTypes"], function (_export, _context) {
   "use strict";
 
-  var _, ScrutinizerJSON, Handledata, reportTypes, reportDirection, displayOptions, filterTypes, displayDNS, displayOthers, _extends, _createClass, makescrutJSON, dataHandler, GenericDatasource;
+  var _, ScrutinizerJSON, Handledata, reportTypes, reportDirection, displayOptions, filterTypes, _extends, _createClass, makescrutJSON, dataHandler, GenericDatasource;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -22,8 +22,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
       reportDirection = _reportTypes.reportDirection;
       displayOptions = _reportTypes.displayOptions;
       filterTypes = _reportTypes.filterTypes;
-      displayDNS = _reportTypes.displayDNS;
-      displayOthers = _reportTypes.displayOthers;
     }],
     execute: function () {
       _extends = Object.assign || function (target) {
@@ -83,8 +81,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
           this.exporters = [];
           this.filterTypes = filterTypes;
-          this.displayDNS = displayDNS;
-          this.displayOthers = displayOthers;
 
           this.filters = "";
 
@@ -102,6 +98,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           value: function query(options) {
             var _this = this;
 
+            console.log('hello');
             //store number of queries being run, make sure to run a Scrutinizer request for each query made.
             var numberOfQueries = 0;
             //data sent up into this list, it's returned at end.
@@ -330,7 +327,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                       _this.doRequest(params).then(function (response) {
 
                         var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval, query);
-                        console.log(query);
 
                         var noOthers = void 0;
 
@@ -485,7 +481,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           value: function buildQueryParameters(options) {
             var _this3 = this;
 
-            console.log(options);
             options.targets = _.filter(options.targets, function (target) {
               return target.target !== "select metric";
             });
