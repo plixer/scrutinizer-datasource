@@ -98,7 +98,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           value: function query(options) {
             var _this = this;
 
-            console.log('hello');
+            console.log('working query');
             //store number of queries being run, make sure to run a Scrutinizer request for each query made.
             var numberOfQueries = 0;
             //data sent up into this list, it's returned at end.
@@ -223,7 +223,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                           var reportFilter = makescrutJSON.createAdhocFilters(filterObject);
 
                           //run a query for each gadget on the dashboard.
-                          query.targets.forEach(function (eachQuery) {
+                          query.targets.forEach(function (eachQuery, index, array) {
 
                             var scrutParams = makescrutJSON.createFilters(_this.scrutInfo, options, reportFilter, eachQuery);
 
@@ -235,6 +235,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                               var params = makescrutJSON.reportJSON(_this.scrutInfo, scrutParams);
                               //request for report data made to scrutinizer
                               _this.doRequest(params).then(function (response) {
+
+                                console.log(response);
                                 //data organized into how Grafana expects it.
                                 var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval, query);
 
