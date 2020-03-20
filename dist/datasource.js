@@ -98,7 +98,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           value: function query(options) {
             var _this = this;
 
-            console.log('working query');
             //store number of queries being run, make sure to run a Scrutinizer request for each query made.
             var numberOfQueries = 0;
             //data sent up into this list, it's returned at end.
@@ -236,7 +235,6 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                               //request for report data made to scrutinizer
                               _this.doRequest(params).then(function (response) {
 
-                                console.log(response);
                                 //data organized into how Grafana expects it.
                                 var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval, query);
 

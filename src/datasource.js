@@ -49,7 +49,7 @@ export class GenericDatasource {
   query(options) {
 
 
-    console.log('working query')
+    
     //store number of queries being run, make sure to run a Scrutinizer request for each query made.
     let numberOfQueries = 0;
     //data sent up into this list, it's returned at end.
@@ -209,7 +209,7 @@ export class GenericDatasource {
                       //request for report data made to scrutinizer
                       this.doRequest(params).then(response => {
 
-                        console.log(response)
+                        
                         //data organized into how Grafana expects it.
                         let formatedData = dataHandler.formatData(
                           response.data,
