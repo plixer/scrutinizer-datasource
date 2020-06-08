@@ -196,7 +196,7 @@ createAdhocFilters(filterObject) {
       params:{
         rm: "report_start",
         authToken: scrutInfo['authToken'],
-        report_data: {
+        report_data: JSON.stringify({
           parse: true,
           reportDirections: { selected: `${scrutParams.reportDirection}` },
           reportTypeLang: `${scrutParams.reportType}`,
@@ -209,7 +209,7 @@ createAdhocFilters(filterObject) {
           filters: scrutParams.scrutFilters,
           dataGranularity: { selected: "auto" },
           oneCollectorRequest: false
-        }
+        })
       },
 
     };
@@ -228,6 +228,7 @@ createAdhocFilters(filterObject) {
   };
 
   interfaceJSON(scrutInfo, ipAddress) {
+ 
     
     if(ipAddress['key'] ==="Device Group"){
       let groupName = ipAddress['value']
@@ -271,21 +272,21 @@ createAdhocFilters(filterObject) {
           action: "get",
           view: "topInterfaces",
           authToken: scrutInfo["authToken"],
-          session_state: {
+          session_state: JSON.stringify({
             client_time_zone: "America/New_York",
             order_by: [],
             search: [
               {
                 column: "exporter_search",
-                value: `${exporterName}`,
+                value: ` ${exporterName} `,
                 comparison: "like",
-                data: { filterType: "multi_string" },
-                _key: `exporter_search_like_${exporterName}`
+                data: { },
+                _key: `exporter_search_like_ ${exporterName} `
               }
             ],
             query_limit: { offset: 0, max_num_rows: 50 },
-            hostDisplayType: "dns"
-          }
+            hostDisplayType: "ip"
+          })
         }
       };
     }
@@ -324,7 +325,7 @@ createAdhocFilters(filterObject) {
           showOthers: 0
         }),
   
-        data_requested: {
+        data_requested: JSON.stringify({
           [scrutParams.reportDirection]: {
             graph: "all",
             table: {
@@ -334,7 +335,7 @@ createAdhocFilters(filterObject) {
               }
             }
           }
-        }
+        })
       }
 
     };

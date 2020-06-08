@@ -49,6 +49,7 @@ export class GenericDatasource {
   query(options) {
 
 
+
     
     //store number of queries being run, make sure to run a Scrutinizer request for each query made.
     let numberOfQueries = 0;
@@ -331,7 +332,9 @@ export class GenericDatasource {
               this.scrutInfo,
               scrutParams
             );
+
             this.doRequest(params).then(response => {
+
               //store interval here.
               let selectedInterval =
                 response.data["report_object"].dataGranularity.used;
@@ -413,9 +416,11 @@ export class GenericDatasource {
 
   findInterfaces(options, scope) {
 
+
     let query = this.liveQuery;
 
     if (query.targets) {
+
       //determines which select you have clicked on.
       let selectedIP = scope.ctrl.target.target;
 
@@ -446,8 +451,10 @@ export class GenericDatasource {
           this.scrutInfo,
           selectedIP
         );
-
+       
+ 
         return this.doRequest(interfaceThings).then(response => {
+
           let data = [{ text: "All Interfaces", value: "allInterfaces" }];
           let i = 0;
           let jsonData = response.data;
@@ -497,6 +504,7 @@ export class GenericDatasource {
   }
 
   doRequest(options) {
+
     options.withCredentials = this.withCredentials;
     options.headers = this.headers;
 

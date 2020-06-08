@@ -319,7 +319,9 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                     var scrutParams = makescrutJSON.createParams(_this.scrutInfo, options, query);
                     //figure out the intervale time.
                     var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams);
+
                     _this.doRequest(params).then(function (response) {
+
                       //store interval here.
                       var selectedInterval = response.data["report_object"].dataGranularity.used;
                       //set up JSON to go to Scrutinizer API
@@ -394,6 +396,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             var query = this.liveQuery;
 
             if (query.targets) {
+
               //determines which select you have clicked on.
               var selectedIP = scope.ctrl.target.target;
 
@@ -420,6 +423,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 var interfaceThings = makescrutJSON.interfaceJSON(this.scrutInfo, selectedIP);
 
                 return this.doRequest(interfaceThings).then(function (response) {
+
                   var data = [{ text: "All Interfaces", value: "allInterfaces" }];
                   var i = 0;
                   var jsonData = response.data;
@@ -471,6 +475,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
         }, {
           key: "doRequest",
           value: function doRequest(options) {
+
             options.withCredentials = this.withCredentials;
             options.headers = this.headers;
 
