@@ -150,6 +150,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             }
             return new Promise(function (resolve, reject) {
               //this exporter count is compared to the number of exporters to verify we have loops threw everything before returning.
+
               var exporterCount = 0;
               var numberofExporters = 0;
 
@@ -308,6 +309,13 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 });
               } else {
                 //else block meands you don't have any adhoc filters applied.
+                var forecastParams = makescrutJSON.forcastData(_this.scrutInfo);
+                _this.doRequest(forecastParams).then(function (response) {
+                  var dataToGraph = dataHandler.formatForcasts(response);
+                  console.log(dataToGraph);
+                  return resolve({ data: dataToGraph });
+                });
+
                 if ((query.targets[checkStart].target !== undefined || "Select Exporter") && query.targets[checkStart].reportInterface !== "Select Interface" && query.targets[checkStart].reportDirection !== "Select Direction" && query.targets[checkStart].reportType !== "Select Report") {
                   _this.runReport = true;
                 }
@@ -347,7 +355,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                         numberOfQueries++;
                         //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
                         if (numberOfQueries === array.length) {
-
+                          console.log({ data: datatoGraph });
                           return resolve({ data: datatoGraph });
                         }
                       });

@@ -1,4 +1,5 @@
 import _ from "lodash";
+
 import { ScrutinizerJSON, Handledata } from "./reportData";
 import {
   reportTypes,
@@ -47,7 +48,7 @@ export class GenericDatasource {
   }
 
   query(options) {
-
+ 
 
 
     
@@ -99,6 +100,7 @@ export class GenericDatasource {
     }
     return new Promise((resolve, reject) => {
       //this exporter count is compared to the number of exporters to verify we have loops threw everything before returning.
+
       let exporterCount = 0;
       let numberofExporters = 0;
 
@@ -308,6 +310,19 @@ export class GenericDatasource {
         });
       } else {
         //else block meands you don't have any adhoc filters applied.
+        let forecastParams = makescrutJSON.forcastData(this.scrutInfo)
+        this.doRequest(forecastParams).then(
+              
+            (response)=>   {
+              let dataToGraph = dataHandler.formatForcasts(response)
+              console.log(dataToGraph)
+              return resolve({ data: dataToGraph })
+            }
+              
+        
+        )
+        
+            
         if (
           (query.targets[checkStart].target !== undefined ||
             "Select Exporter") &&
@@ -371,7 +386,7 @@ export class GenericDatasource {
                 numberOfQueries++;
                 //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
                 if (numberOfQueries === array.length) {
-
+                  console.log({ data: datatoGraph })
                   return resolve({ data: datatoGraph });
                 }
               });
@@ -485,6 +500,7 @@ export class GenericDatasource {
   }
 
   exporterList() {
+
     let params = makescrutJSON.exporterJSON(this.scrutInfo);
     return this.doRequest(params).then(response => {
       let exporterList = [

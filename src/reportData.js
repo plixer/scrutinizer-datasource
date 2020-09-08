@@ -1,4 +1,5 @@
 import _ from "lodash";
+import moment from "moment";
 
 
 export class ScrutinizerJSON {
@@ -341,6 +342,21 @@ createAdhocFilters(filterObject) {
     };
   }  
 
+  //function to gather forcast data. 
+
+  forcastData(scrutInfo) {
+    return {
+      url:scrutInfo['url'],
+      method: "GET",
+      params: {
+        rm: "forecasting",
+        view: "forecast_data",
+        forecast_id: 183,
+        authToken: scrutInfo['authToken']
+      }
+    };
+  };
+
 }
 export class Handledata {
   //scrutinizer returns graph data opposite of how grafana wants it. So we flip it here.
@@ -463,5 +479,58 @@ export class Handledata {
     return datatoGraph
     
   }
+
+  formatForcasts(forcastData){
+
+              let forcastResults = forcastData['data']['rows']
+              let forcastItems = []
+              forcastResults.forEach(row=>{forcastItems.push(row['target'])})
+              let uniqueItems = Array.from(new Set(forcastItems))
+
+              let sampleFinal = []
+
+              uniqueItems.forEach((item)=>{
+                sampleFinal.push({target:item, datapoints:[]})
+                sampleFinal.push({target:item+' predicted', datapoints:[]})
+                sampleFinal.push({target:item +' upper bound', datapoints:[]})
+                sampleFinal.push({target:item +' lower bound', datapoints:[]})
+              })
+
+              sampleFinal.forEach((item)=>{
+                forcastResults.forEach((forcestedItem)=>{
+                  let epochTime = moment(forcestedItem['intervaltime']).valueOf()
+                  let meanValue = parseInt(forcestedItem['mean'])
+                  let upperValue = parseInt(forcestedItem['conf_upper'])
+                  let lowerValue = parseInt(forcestedItem['conf_lower'])
+                  console.log(forcestedItem)
+                  try {
+                    if(forcestedItem['target'] === item['target'] && forcestedItem['record_type'] === 'train' ){
+                      item['datapoints'].push([(meanValue  * 8)/60, epochTime])
+                      
+                    }else if (forcestedItem['target'] + ' upper bound'=== item['target']){
+                      item['datapoints'].push([(upperValue * 8)/60 , epochTime])
+                    } else if (forcestedItem['target'] + ' lower bound'=== item['target']){
+                      item['datapoints'].push([(lowerValue * 8)/60, epochTime])
+                    } else if (forcestedItem['target'] + ' predicted' === item['target'] && forcestedItem['record_type'] === 'forecast' ){
+                      item['datapoints'].push([(meanValue  * 8)/60, epochTime])
+                      
+                    }
+                  }
+                  catch(err){
+                    console.log(err)
+                  }
+
+                })
+              })
+              console.log(sampleFinal)
+              return sampleFinal
+ 
+              
+              // console.log(res);
+
+
+
+  }
+
 }
 
