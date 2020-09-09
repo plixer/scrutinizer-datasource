@@ -3,7 +3,7 @@
 System.register(["lodash", "moment"], function (_export, _context) {
   "use strict";
 
-  var _, moment, _createClass, ScrutinizerJSON, Handledata;
+  var _, sum, moment, _createClass, ScrutinizerJSON, Handledata;
 
   function _defineProperty(obj, key, value) {
     if (key in obj) {
@@ -29,6 +29,7 @@ System.register(["lodash", "moment"], function (_export, _context) {
   return {
     setters: [function (_lodash) {
       _ = _lodash.default;
+      sum = _lodash.sum;
     }, function (_moment) {
       moment = _moment.default;
     }],
@@ -386,14 +387,41 @@ System.register(["lodash", "moment"], function (_export, _context) {
           }
         }, {
           key: "forcastData",
-          value: function forcastData(scrutInfo) {
+          value: function forcastData(scrutInfo, forcastID) {
             return {
               url: scrutInfo['url'],
               method: "GET",
               params: {
                 rm: "forecasting",
                 view: "forecast_data",
-                forecast_id: 183,
+                forecast_id: forcastID,
+                authToken: scrutInfo['authToken']
+              }
+            };
+          }
+        }, {
+          key: "forecastSummary",
+          value: function forecastSummary(scrutInfo, forcastID) {
+            return {
+              url: scrutInfo['url'],
+              method: "GET",
+              params: {
+                rm: "forecasting",
+                view: "summary",
+                forecast_id: forcastID,
+                authToken: scrutInfo['authToken']
+              }
+            };
+          }
+        }, {
+          key: "getForcasts",
+          value: function getForcasts(scrutInfo) {
+            return {
+              url: scrutInfo['url'],
+              method: "GET",
+              params: {
+                rm: "forecasting",
+                view: "table",
                 authToken: scrutInfo['authToken']
               }
             };
@@ -523,31 +551,66 @@ System.register(["lodash", "moment"], function (_export, _context) {
           }
         }, {
           key: "formatForcasts",
-          value: function formatForcasts(forcastData) {
+          value: function formatForcasts(forcastData, forcastSummary) {
 
+            //summary data brought in from different request. 
+            var summaryData = forcastSummary['data']['inbound_rows'];
+
+            var summaryDataArray = [];
+
+            summaryData.forEach(function (summaryRow) {
+              summaryRow.forEach(function (itemInSummaryRow) {
+                var keyToCheck = Object.keys(itemInSummaryRow);
+                if (!["Rank", "max_forecast_time", "upper_bound", "expected_value"].includes(keyToCheck[0])) {
+                  var rowLabel = itemInSummaryRow[keyToCheck[0]]['label'];
+                  var rankValue = summaryRow[0]['Rank']['label'] + '-inbound';
+                  summaryDataArray.push({ 'rankValue': rankValue, 'rowLabel': rowLabel });
+                }
+              });
+            });
+
+            //forcast results brought in, includes all time data needed. 
             var forcastResults = forcastData['data']['rows'];
+
             var forcastItems = [];
             forcastResults.forEach(function (row) {
               forcastItems.push(row['target']);
             });
+            //unique items conatins each row (inbound-0, inbound-1, etc)
             var uniqueItems = Array.from(new Set(forcastItems));
 
-            var sampleFinal = [];
+            //array to be returned, contains everything needed to graph in grafana. 
+            var finalSummaryData = [];
+            var testData = [];
 
+            //for each unique item, create an object reporesenting upper and lower bounds, attach empty array to hold time series data to it. 
             uniqueItems.forEach(function (item) {
-              sampleFinal.push({ target: item, datapoints: [] });
-              sampleFinal.push({ target: item + ' predicted', datapoints: [] });
-              sampleFinal.push({ target: item + ' upper bound', datapoints: [] });
-              sampleFinal.push({ target: item + ' lower bound', datapoints: [] });
+
+              finalSummaryData.push({ target: item, datapoints: [] });
+              finalSummaryData.push({ target: item + ' predicted', datapoints: [] });
+              finalSummaryData.push({ target: item + ' upper bound', datapoints: [] });
+              finalSummaryData.push({ target: item + ' lower bound', datapoints: [] });
             });
 
-            sampleFinal.forEach(function (item) {
+            finalSummaryData.forEach(function (item) {
+              summaryDataArray.forEach(function (summaryItem) {
+                if (item['target'].includes(summaryItem['rankValue'])) {
+                  var replacedItem = item['target'].replace(summaryItem['rankValue'], summaryItem['rowLabel']);
+
+                  testData.push({ target: replacedItem, datapoints: item['datapoints'] });
+                }
+              });
+              try {} catch (e) {}
+            });
+
+            //add time datapoints to the empy arrays. 
+            finalSummaryData.forEach(function (item) {
               forcastResults.forEach(function (forcestedItem) {
                 var epochTime = moment(forcestedItem['intervaltime']).valueOf();
                 var meanValue = parseInt(forcestedItem['mean']);
                 var upperValue = parseInt(forcestedItem['conf_upper']);
                 var lowerValue = parseInt(forcestedItem['conf_lower']);
-                console.log(forcestedItem);
+
                 try {
                   if (forcestedItem['target'] === item['target'] && forcestedItem['record_type'] === 'train') {
                     item['datapoints'].push([meanValue * 8 / 60, epochTime]);
@@ -563,11 +626,43 @@ System.register(["lodash", "moment"], function (_export, _context) {
                 }
               });
             });
-            console.log(sampleFinal);
-            return sampleFinal;
 
-            // console.log(res);
+            return testData;
+          }
+        }, {
+          key: "formatAllForecasts",
+          value: function formatAllForecasts(forcastData) {
+            //store all forcast data into an array
+            var forecasteData = forcastData['data']['rows'];
+            //final list to return, objects appended on each loop. 
+            var allForcastList = [];
 
+            forecasteData.forEach(function (allForecasts) {
+
+              //create object to store ID / Text relationship. 
+              var forcastObject = {};
+              allForecasts.forEach(function (forecast) {
+
+                try {
+                  if (forecast['type'] === 'forecast_id') {
+
+                    var forecastId = forecast['title'].toString();
+
+                    forcastObject["value"] = forecastId;
+                  } else if (forecast['type'] === 'description') {
+                    var forecastDescription = forecast['title'];
+                    forcastObject["text"] = forecastDescription;
+                    allForcastList.push(forcastObject);
+                  } else {
+                    ;
+                  }
+                } catch (err) {
+                  console.log(err);
+                }
+              });
+            });
+
+            return allForcastList;
           }
         }]);
 

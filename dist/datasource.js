@@ -80,6 +80,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           this.runReport = false;
 
           this.exporters = [];
+          this.forecasts = [];
           this.filterTypes = filterTypes;
 
           this.filters = "";
@@ -89,6 +90,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             authToken: instanceSettings.jsonData["scrutinizerKey"]
           };
           this.exporterList = this.exporterList();
+          this.forecastList = this.forecastList();
 
           this.others = false;
         }
@@ -308,12 +310,19 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                     }
                 });
               } else {
+                // get a relationship of forcasts and ids
+                var forcastID = query['targets'][0]['reportForcast'];
+                console.log(query['targets'][0]['reportForcast']);
+                console.log(query);
                 //else block meands you don't have any adhoc filters applied.
-                var forecastParams = makescrutJSON.forcastData(_this.scrutInfo);
+                var forecastParams = makescrutJSON.forcastData(_this.scrutInfo, forcastID);
                 _this.doRequest(forecastParams).then(function (response) {
-                  var dataToGraph = dataHandler.formatForcasts(response);
-                  console.log(dataToGraph);
-                  return resolve({ data: dataToGraph });
+                  var forcastSummary = makescrutJSON.forecastSummary(_this.scrutInfo, forcastID);
+                  _this.doRequest(forcastSummary).then(function (data) {
+                    var dataToGraph = dataHandler.formatForcasts(response, data);
+
+                    return resolve({ data: dataToGraph });
+                  });
                 });
 
                 if ((query.targets[checkStart].target !== undefined || "Select Exporter") && query.targets[checkStart].reportInterface !== "Select Interface" && query.targets[checkStart].reportDirection !== "Select Direction" && query.targets[checkStart].reportType !== "Select Report") {
@@ -355,7 +364,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                         numberOfQueries++;
                         //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
                         if (numberOfQueries === array.length) {
-                          console.log({ data: datatoGraph });
+
                           return resolve({ data: datatoGraph });
                         }
                       });
@@ -462,13 +471,18 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             return this.exporters;
           }
         }, {
+          key: "getForecasts",
+          value: function getForecasts() {
+            return this.forecasts;
+          }
+        }, {
           key: "exporterList",
           value: function exporterList() {
             var _this2 = this;
 
             var params = makescrutJSON.exporterJSON(this.scrutInfo);
             return this.doRequest(params).then(function (response) {
-              var exporterList = [{ text: "All Exporters", value: "allExporters" }, { text: "Device Group", value: "deviceGroup" }];
+              var exporterList = [{ text: "All Exporters", value: "allExporters" }, { text: "Device Group", value: "deviceGroup" }, { text: "Forecasts", value: "forcastData" }];
               for (var i = 0; i < response.data.length; i++) {
                 exporterList.push({
                   text: response.data[i]["name"],
@@ -478,6 +492,19 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
               _this2.exporters = exporterList;
               return exporterList;
+            });
+          }
+        }, {
+          key: "forecastList",
+          value: function forecastList() {
+            var _this3 = this;
+
+            var getForcastParams = makescrutJSON.getForcasts(this.scrutInfo);
+
+            return this.doRequest(getForcastParams).then(function (response) {
+              var forecastlist = dataHandler.formatAllForecasts(response);
+              _this3.forecasts = forecastlist;
+              return forecastlist;
             });
           }
         }, {
@@ -492,7 +519,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
         }, {
           key: "buildQueryParameters",
           value: function buildQueryParameters(options) {
-            var _this3 = this;
+            var _this4 = this;
 
             options.targets = _.filter(options.targets, function (target) {
               return target.target !== "select metric";
@@ -501,20 +528,21 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             var targets = _.map(options.targets, function (target) {
 
               return {
-                target: _this3.templateSrv.replace(target.target, options.scopedVars, "regex"),
+                target: _this4.templateSrv.replace(target.target, options.scopedVars, "regex"),
+                reportForcast: _this4.templateSrv.replace(target.forecast, options.scopedVars, "regex"),
                 refId: target.refId,
                 hide: target.hide,
                 type: target.type || "timeserie",
 
-                reportType: _this3.templateSrv.replace(target.report, options.scopedVars, "regex"),
+                reportType: _this4.templateSrv.replace(target.report, options.scopedVars, "regex"),
 
-                reportDirection: _this3.templateSrv.replace(target.direction, options.scopedVars, "regex"),
+                reportDirection: _this4.templateSrv.replace(target.direction, options.scopedVars, "regex"),
 
-                reportInterface: _this3.templateSrv.replace(target.interface || "Select Interface", options.scopedVars, "regex"),
+                reportInterface: _this4.templateSrv.replace(target.interface || "Select Interface", options.scopedVars, "regex"),
 
-                reportFilters: _this3.templateSrv.replace(target.filters || "No Filter", options.scopedVars, "regex"),
+                reportFilters: _this4.templateSrv.replace(target.filters || "No Filter", options.scopedVars, "regex"),
 
-                reportDisplay: _this3.templateSrv.replace(target.display || "No Display", options.scopedVars, "regex"),
+                reportDisplay: _this4.templateSrv.replace(target.display || "No Display", options.scopedVars, "regex"),
 
                 reportDNS: target.dns,
                 hideOthers: target.hideOthers
@@ -528,7 +556,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
         }, {
           key: "HandleAdhocFilters",
           value: function HandleAdhocFilters(resolve, options) {
-            var _this4 = this;
+            var _this5 = this;
 
             if (options.key != "Device Group") {
               var exporterParams = makescrutJSON.findExporter(this.scrutInfo, options.key);
@@ -536,9 +564,9 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
               this.doRequest(exporterParams).then(function (exporterResults) {
                 var exporterIp = exporterResults["data"]["results"][0]["exporter_ip"];
-                var interfaceParams = makescrutJSON.interfaceJSON(_this4.scrutInfo, exporterIp);
+                var interfaceParams = makescrutJSON.interfaceJSON(_this5.scrutInfo, exporterIp);
 
-                _this4.doRequest(interfaceParams).then(function (interfaceDetails) {
+                _this5.doRequest(interfaceParams).then(function (interfaceDetails) {
                   var interfaceList = interfaceDetails["data"]["rows"];
 
                   for (var k = 0; k < interfaceList.length; k++) {
@@ -573,7 +601,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
         }, {
           key: "addInterfaces",
           value: function addInterfaces(exporterName) {
-            var _this5 = this;
+            var _this6 = this;
 
             //if key is exporter there is no AND, we know we are looking for interfaces on that exporter.
             var interfaces = [];
@@ -581,8 +609,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             var adhocParams = makescrutJSON.findExporter(this.scrutInfo, exporterToSearch);
             this.doRequest(adhocParams).then(function (exporter_details) {
               var exporterIpFound = exporter_details.data.results[0].exporter_ip;
-              var interfacesToSearch = makescrutJSON.interfaceJSON(_this5.scrutInfo, exporterIpFound);
-              _this5.doRequest(interfacesToSearch).then(function (interfaceDetails) {
+              var interfacesToSearch = makescrutJSON.interfaceJSON(_this6.scrutInfo, exporterIpFound);
+              _this6.doRequest(interfacesToSearch).then(function (interfaceDetails) {
                 var i = 0;
                 var interfaceJson = interfaceDetails.data;
 
@@ -601,7 +629,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
         }, {
           key: "presentOptions",
           value: function presentOptions(resolve) {
-            var _this6 = this;
+            var _this7 = this;
 
             var params = makescrutJSON.exporterJSON(this.scrutInfo);
             return this.doRequest(params).then(function (response) {
@@ -613,23 +641,23 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 });
               }
 
-              _this6.exporters = exporterList;
+              _this7.exporters = exporterList;
               return resolve(exporterList);
             });
           }
         }, {
           key: "getTagKeys",
           value: function getTagKeys(options) {
-            var _this7 = this;
+            var _this8 = this;
 
             return new Promise(function (resolve, reject) {
-              _this7.presentOptions(resolve);
+              _this8.presentOptions(resolve);
             });
           }
         }, {
           key: "getTagValues",
           value: function getTagValues(options) {
-            var _this8 = this;
+            var _this9 = this;
 
             switch (options.key) {
               case "Source IP Filter":
@@ -651,7 +679,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 });
               default:
                 return new Promise(function (resolve, reject) {
-                  _this8.HandleAdhocFilters(resolve, options);
+                  _this9.HandleAdhocFilters(resolve, options);
                 });
             }
           }

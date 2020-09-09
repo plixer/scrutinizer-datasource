@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _, { sum } from "lodash";
 import moment from "moment";
 
 
@@ -344,18 +344,44 @@ createAdhocFilters(filterObject) {
 
   //function to gather forcast data. 
 
-  forcastData(scrutInfo) {
+  forcastData(scrutInfo, forcastID) {
     return {
       url:scrutInfo['url'],
       method: "GET",
       params: {
         rm: "forecasting",
         view: "forecast_data",
-        forecast_id: 183,
+        forecast_id: forcastID,
         authToken: scrutInfo['authToken']
       }
     };
   };
+
+
+  forecastSummary(scrutInfo, forcastID) {
+    return {
+      url:scrutInfo['url'],
+      method: "GET",
+      params: {
+        rm: "forecasting",
+        view: "summary",
+        forecast_id: forcastID,
+        authToken: scrutInfo['authToken']
+      }
+    };
+  };
+
+  getForcasts(scrutInfo){
+    return {
+      url:scrutInfo['url'],
+      method: "GET",
+      params: {
+        rm: "forecasting",
+        view: "table",
+        authToken: scrutInfo['authToken']
+      }
+    };
+  }
 
 }
 export class Handledata {
@@ -480,29 +506,77 @@ export class Handledata {
     
   }
 
-  formatForcasts(forcastData){
+  formatForcasts(forcastData, forcastSummary){
 
+              //summary data brought in from different request. 
+              let summaryData = forcastSummary['data']['inbound_rows']
+
+              let summaryDataArray = []
+
+              summaryData.forEach((summaryRow)=>{
+                summaryRow.forEach((itemInSummaryRow)=>{
+                  let keyToCheck = Object.keys(itemInSummaryRow)
+                  if(!["Rank","max_forecast_time", "upper_bound", "expected_value"].includes(keyToCheck[0])){
+                    let rowLabel = itemInSummaryRow[keyToCheck[0]]['label'] 
+                    let rankValue = summaryRow[0]['Rank']['label']+ '-inbound'
+                    summaryDataArray.push({'rankValue':rankValue, 'rowLabel':rowLabel})
+
+                  }
+                })
+              })
+            
+              //forcast results brought in, includes all time data needed. 
               let forcastResults = forcastData['data']['rows']
+
+
               let forcastItems = []
               forcastResults.forEach(row=>{forcastItems.push(row['target'])})
+              //unique items conatins each row (inbound-0, inbound-1, etc)
               let uniqueItems = Array.from(new Set(forcastItems))
 
-              let sampleFinal = []
 
+              //array to be returned, contains everything needed to graph in grafana. 
+              let finalSummaryData = []
+              let testData = []
+ 
+              //for each unique item, create an object reporesenting upper and lower bounds, attach empty array to hold time series data to it. 
               uniqueItems.forEach((item)=>{
-                sampleFinal.push({target:item, datapoints:[]})
-                sampleFinal.push({target:item+' predicted', datapoints:[]})
-                sampleFinal.push({target:item +' upper bound', datapoints:[]})
-                sampleFinal.push({target:item +' lower bound', datapoints:[]})
+
+                finalSummaryData.push({target:item, datapoints:[]})
+                finalSummaryData.push({target:item+' predicted', datapoints:[]})
+                finalSummaryData.push({target:item +' upper bound', datapoints:[]})
+                finalSummaryData.push({target:item +' lower bound', datapoints:[]})
+              })
+              
+
+              finalSummaryData.forEach((item)=>{
+                summaryDataArray.forEach((summaryItem)=>{
+                  if(item['target'].includes(summaryItem['rankValue'])){
+                    let replacedItem = item['target'].replace(summaryItem['rankValue'],summaryItem['rowLabel'] )
+
+                    testData.push({target:replacedItem, datapoints:item['datapoints']})
+                  }
+                })
+                try {
+                  
+      
+                  
+                }
+                catch(e) {
+
+                }
+                
+
               })
 
-              sampleFinal.forEach((item)=>{
+              //add time datapoints to the empy arrays. 
+              finalSummaryData.forEach((item)=>{
                 forcastResults.forEach((forcestedItem)=>{
                   let epochTime = moment(forcestedItem['intervaltime']).valueOf()
                   let meanValue = parseInt(forcestedItem['mean'])
                   let upperValue = parseInt(forcestedItem['conf_upper'])
                   let lowerValue = parseInt(forcestedItem['conf_lower'])
-                  console.log(forcestedItem)
+
                   try {
                     if(forcestedItem['target'] === item['target'] && forcestedItem['record_type'] === 'train' ){
                       item['datapoints'].push([(meanValue  * 8)/60, epochTime])
@@ -522,15 +596,69 @@ export class Handledata {
 
                 })
               })
-              console.log(sampleFinal)
-              return sampleFinal
+            
+
+
+      
+
+
+
+
+              return testData
  
               
-              // console.log(res);
+
 
 
 
   }
+
+  formatAllForecasts(forcastData){
+      //store all forcast data into an array
+      let forecasteData = forcastData['data']['rows']
+      //final list to return, objects appended on each loop. 
+      let allForcastList = []
+ 
+      forecasteData.forEach((allForecasts)=>{
+
+        //create object to store ID / Text relationship. 
+        let forcastObject = 
+        {
+  
+        }
+        allForecasts.forEach((forecast)=>{
+
+                  
+           try {
+              if(forecast['type']==='forecast_id'){
+                
+                let forecastId = forecast['title'].toString()
+
+                forcastObject["value"] = forecastId
+
+              }
+            else if(forecast['type']==='description'){
+              let forecastDescription = forecast['title']
+              forcastObject["text"] = forecastDescription
+              allForcastList.push(forcastObject)
+            } else {
+              ;
+            }
+           } catch(err){
+              console.log(err)
+           }
+
+           
+
+
+           
+        })
+      })
+
+      return allForcastList
+  }
+
+
 
 }
 

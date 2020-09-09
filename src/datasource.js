@@ -33,6 +33,7 @@ export class GenericDatasource {
     this.runReport = false;
 
     this.exporters = [];
+    this.forecasts = [];
     this.filterTypes = filterTypes;
 
 
@@ -43,13 +44,13 @@ export class GenericDatasource {
       authToken: instanceSettings.jsonData["scrutinizerKey"]
     };
     this.exporterList = this.exporterList();
+    this.forecastList = this.forecastList()
 
     this.others = false
   }
 
   query(options) {
  
-
 
     
     //store number of queries being run, make sure to run a Scrutinizer request for each query made.
@@ -309,14 +310,26 @@ export class GenericDatasource {
           }
         });
       } else {
+        // get a relationship of forcasts and ids
+        let forcastID = query['targets'][0]['reportForcast']
+        console.log(query['targets'][0]['reportForcast'])
+        console.log(query)
         //else block meands you don't have any adhoc filters applied.
-        let forecastParams = makescrutJSON.forcastData(this.scrutInfo)
+        let forecastParams = makescrutJSON.forcastData(this.scrutInfo, forcastID)
         this.doRequest(forecastParams).then(
               
             (response)=>   {
-              let dataToGraph = dataHandler.formatForcasts(response)
-              console.log(dataToGraph)
-              return resolve({ data: dataToGraph })
+              let forcastSummary = makescrutJSON.forecastSummary(this.scrutInfo,forcastID )
+              this.doRequest(forcastSummary).then((data)=>{ 
+                let dataToGraph = dataHandler.formatForcasts(response, data)
+
+                return resolve({ data: dataToGraph })
+              })
+              
+              
+
+
+              
             }
               
         
@@ -386,7 +399,7 @@ export class GenericDatasource {
                 numberOfQueries++;
                 //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
                 if (numberOfQueries === array.length) {
-                  console.log({ data: datatoGraph })
+ 
                   return resolve({ data: datatoGraph });
                 }
               });
@@ -499,13 +512,18 @@ export class GenericDatasource {
     return this.exporters;
   }
 
+  getForecasts(){
+    return this.forecasts;
+  }
+
   exporterList() {
 
     let params = makescrutJSON.exporterJSON(this.scrutInfo);
     return this.doRequest(params).then(response => {
       let exporterList = [
         { text: "All Exporters", value: "allExporters" },
-        { text: "Device Group", value: "deviceGroup" }
+        { text: "Device Group", value: "deviceGroup" },
+        { text: "Forecasts", value: "forcastData" },
       ];
       for (let i = 0; i < response.data.length; i++) {
         exporterList.push({
@@ -517,6 +535,16 @@ export class GenericDatasource {
       this.exporters = exporterList;
       return exporterList;
     });
+  }
+
+  forecastList(){
+    let getForcastParams =  makescrutJSON.getForcasts(this.scrutInfo)
+        
+    return this.doRequest(getForcastParams).then((response)=>{
+      let forecastlist = dataHandler.formatAllForecasts(response)
+      this.forecasts = forecastlist
+      return forecastlist
+    })
   }
 
   doRequest(options) {
@@ -540,6 +568,11 @@ export class GenericDatasource {
       return {
         target: this.templateSrv.replace(
           target.target,
+          options.scopedVars,
+          "regex"
+        ),
+        reportForcast: this.templateSrv.replace(
+          target.forecast,
           options.scopedVars,
           "regex"
         ),
@@ -576,6 +609,8 @@ export class GenericDatasource {
           options.scopedVars,
           "regex"
         ),
+
+
 
         reportDNS: target.dns,
         hideOthers:target.hideOthers

@@ -73,6 +73,7 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           _this.target.display = _this.target.display || 'Bits / Percent';
           _this.target.direction = _this.target.direction || 'Select Direction';
           _this.target.interface = _this.target.interface || 'Select Interface';
+          _this.target.forecast = _this.target.forecast || 'Select Forecast';
           _this.target.type = _this.target.type || 'timeserie';
           _this.target.filters = _this.target.filters;
           _this.target.dns = _this.target.resolveDNS;
@@ -94,6 +95,12 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           value: function getInterfaces(query) {
 
             return this.datasource.findInterfaces(query || '', this.scope);
+          }
+        }, {
+          key: 'getForecasts',
+          value: function getForecasts(query) {
+
+            return this.datasource.getForecasts(query || '', this.scope);
           }
         }, {
           key: 'toggleEditorMode',

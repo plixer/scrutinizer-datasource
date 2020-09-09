@@ -4,17 +4,9 @@
   has-text-edit-mode="true"
 >
   <div class="gf-form-inline">
-    <div class="gf-form" ng-if="ctrl.target.rawQuery">
-      <textarea
-        class="gf-form-input"
-        rows="5"
-        ng-model="ctrl.target.target"
-        spellcheck="false"
-        ng-blur="ctrl.onChangeInternal()"
-      />
-    </div>
 
-    <div ng-if="!ctrl.target.rawQuery">
+
+    
       <div class="gf-form">
         <gf-form-dropdown
           model="ctrl.target.target"
@@ -25,9 +17,9 @@
         >
         </gf-form-dropdown>
       </div>
-    </div>
 
-    <div ng-if="!ctrl.target.rawQuery">
+
+      <div ng-if="ctrl.target.target !== 'forcastData'">
       <div class="gf-form">
         <gf-form-dropdown
           model="ctrl.target.interface"
@@ -39,8 +31,9 @@
         </gf-form-dropdown>
       </div>
     </div>
+    
 
-    <div ng-if="!ctrl.target.rawQuery">
+    <div ng-if="ctrl.target.target !== 'forcastData'">
       <div class="gf-form">
         <gf-form-dropdown
           model="ctrl.target.report"
@@ -52,6 +45,8 @@
         </gf-form-dropdown>
       </div>
     </div>
+
+
     <div ng-if="ctrl.target.report === 'interfaces'">
       <div class="gf-form">
         <gf-form-dropdown
@@ -64,7 +59,7 @@
         </gf-form-dropdown>
       </div>
     </div>
-
+<div ng-if="ctrl.target.target !== 'forcastData'">
     <div class="gf-form">
       <gf-form-dropdown
         model="ctrl.target.direction"
@@ -75,7 +70,9 @@
       >
       </gf-form-dropdown>
     </div>
+</div>
 
+<div ng-if="ctrl.target.target !== 'forcastData'">
     <gf-form-switch
       class="gf-form"
       label="Resolve DNS"
@@ -89,7 +86,9 @@
         </div>
       </label>
     </gf-form-switch>
+  </div>
 
+  <div ng-if="ctrl.target.target !== 'forcastData'">
     <gf-form-switch
       class="gf-form"
       label="Hide Other"
@@ -106,7 +105,23 @@
         <!---->
       </label>
     </gf-form-switch>
+  </div>
 
+  <div ng-if="ctrl.target.target === 'forcastData'">
+    <div class="gf-form">
+      <gf-form-dropdown
+        model="ctrl.target.forecast"
+        allow-custom="true"
+        lookup-text="true"
+        get-options="ctrl.getForecasts($query)"
+        on-change="ctrl.onChangeInternal()"
+      >
+      </gf-form-dropdown>
+    </div>
+</div>
+
+
+  <div ng-if="ctrl.target.target !== 'forcastData'">
     <gf-form-checkbox
       class="gf-form"
       label="Add Filter"
@@ -140,6 +155,7 @@
         <!---->
       </label>
     </gf-form-checkbox>
+  </div>
   </div>
   <div ng-if="current.jsonData.tlsAuthWithCACert">
     <div class="gf-form-inline">

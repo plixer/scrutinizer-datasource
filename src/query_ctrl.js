@@ -11,6 +11,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.display = this.target.display || 'Bits / Percent';
     this.target.direction = this.target.direction || 'Select Direction';
     this.target.interface = this.target.interface || 'Select Interface';
+    this.target.forecast = this.target.forecast || 'Select Forecast';
     this.target.type = this.target.type || 'timeserie';
     this.target.filters = this.target.filters;
     this.target.dns = this.target.resolveDNS;
@@ -27,6 +28,12 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
 
     return this.datasource.findInterfaces(query || '', this.scope)
+  }
+
+
+  getForecasts(query) {
+
+    return this.datasource.getForecasts(query || '', this.scope);
   }
   toggleEditorMode() {
     this.target.rawQuery = !this.target.rawQuery;
