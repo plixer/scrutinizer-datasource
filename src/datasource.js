@@ -4,7 +4,8 @@ import {
   reportTypes,
   reportDirection,
   displayOptions,
-  filterTypes
+  filterTypes,
+  granularityOptions
 } from "./reportTypes";
 
 let makescrutJSON = new ScrutinizerJSON();
@@ -19,6 +20,7 @@ export class GenericDatasource {
     this.templateSrv = templateSrv;
     this.reportOptions = reportTypes;
     this.reportDirections = reportDirection;
+    this.granularityOptions = granularityOptions;
     this.displayOptions = displayOptions;
     this.withCredentials = instanceSettings.withCredentials;
     this.liveQuery = "";
@@ -49,8 +51,6 @@ export class GenericDatasource {
   query(options) {
 
 
-
-    
     //store number of queries being run, make sure to run a Scrutinizer request for each query made.
     let numberOfQueries = 0;
     //data sent up into this list, it's returned at end.
@@ -196,12 +196,15 @@ export class GenericDatasource {
 
                     let params = makescrutJSON.findtimeJSON(
                       this.scrutInfo,
-                      scrutParams
+                      scrutParams,
+                      eachQuery
                     );
                     //find out what interval the data is in, we need to use this later to normalize the graphs.
                     this.doRequest(params).then(response => {
-                      let selectedInterval =
-                        response.data["report_object"].dataGranularity.used;
+
+                      let graphGranularity =
+                      response.data["report_object"].graphView.graphGranularity.seconds;        
+
                       //set up JSON to go to Scrutinizer API
                       let params = makescrutJSON.reportJSON(
                         this.scrutInfo,
@@ -215,7 +218,7 @@ export class GenericDatasource {
                         let formatedData = dataHandler.formatData(
                           response.data,
                           scrutParams,
-                          selectedInterval, 
+                          graphGranularity, 
                           query
                         );
 
@@ -255,12 +258,16 @@ export class GenericDatasource {
               //figure out the intervale time.
               let params = makescrutJSON.findtimeJSON(
                 this.scrutInfo,
-                scrutParams
+                scrutParams,
+                query
               );
               this.doRequest(params).then(response => {
+               
                 //store interval here.
-                let selectedInterval =
-                  response.data["report_object"].dataGranularity.used;
+
+                let graphGranularity =
+                  response.data["report_object"].graphView.graphGranularity.seconds;        
+  
                 //set up JSON to go to Scrutinizer API
                 this.filters = makescrutJSON.createAdhocFilters(filterObject);
                 //add adhoc filters to exhisting filters.
@@ -278,7 +285,7 @@ export class GenericDatasource {
                   let formatedData = dataHandler.formatData(
                     response.data,
                     scrutParams,
-                    selectedInterval,
+                    graphGranularity,
                     query
                   );
 
@@ -329,15 +336,19 @@ export class GenericDatasource {
             );
             //figure out the intervale time.
             let params = makescrutJSON.findtimeJSON(
+
               this.scrutInfo,
-              scrutParams
+              scrutParams,
+              query
             );
 
             this.doRequest(params).then(response => {
+              
 
-              //store interval here.
-              let selectedInterval =
-                response.data["report_object"].dataGranularity.used;
+              let graphGranularity =
+                response.data["report_object"].graphView.graphGranularity.seconds;        
+
+       
               //set up JSON to go to Scrutinizer API
               let params = makescrutJSON.reportJSON(
                 this.scrutInfo,
@@ -348,8 +359,9 @@ export class GenericDatasource {
                 let formatedData = dataHandler.formatData(
                   response.data,
                   scrutParams,
-                  selectedInterval,
-                  query
+                  graphGranularity,
+                  query,
+                  
                 );
      
 
@@ -559,6 +571,12 @@ export class GenericDatasource {
           target.display || "No Display",
           options.scopedVars,
           "regex"
+        ),        
+        
+        reportGranularity: this.templateSrv.replace(
+          target.granularity || "Select Granularity",
+          options.scopedVars,
+          "regex"
         ),
 
         reportDNS: target.dns,
@@ -684,6 +702,7 @@ export class GenericDatasource {
   }
 
   getTagValues(options) {
+
 
   
     switch (options.key) {

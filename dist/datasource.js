@@ -3,7 +3,7 @@
 System.register(["lodash", "./reportData", "./reportTypes"], function (_export, _context) {
   "use strict";
 
-  var _, ScrutinizerJSON, Handledata, reportTypes, reportDirection, displayOptions, filterTypes, _extends, _createClass, makescrutJSON, dataHandler, GenericDatasource;
+  var _, ScrutinizerJSON, Handledata, reportTypes, reportDirection, displayOptions, filterTypes, granularityOptions, _extends, _createClass, makescrutJSON, dataHandler, GenericDatasource;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -22,6 +22,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
       reportDirection = _reportTypes.reportDirection;
       displayOptions = _reportTypes.displayOptions;
       filterTypes = _reportTypes.filterTypes;
+      granularityOptions = _reportTypes.granularityOptions;
     }],
     execute: function () {
       _extends = Object.assign || function (target) {
@@ -70,6 +71,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           this.templateSrv = templateSrv;
           this.reportOptions = reportTypes;
           this.reportDirections = reportDirection;
+          this.granularityOptions = granularityOptions;
           this.displayOptions = displayOptions;
           this.withCredentials = instanceSettings.withCredentials;
           this.liveQuery = "";
@@ -226,17 +228,19 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
                             var scrutParams = makescrutJSON.createFilters(_this.scrutInfo, options, reportFilter, eachQuery);
 
-                            var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams);
+                            var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams, eachQuery);
                             //find out what interval the data is in, we need to use this later to normalize the graphs.
                             _this.doRequest(params).then(function (response) {
-                              var selectedInterval = response.data["report_object"].dataGranularity.used;
+
+                              var graphGranularity = response.data["report_object"].graphView.graphGranularity.seconds;
+
                               //set up JSON to go to Scrutinizer API
                               var params = makescrutJSON.reportJSON(_this.scrutInfo, scrutParams);
                               //request for report data made to scrutinizer
                               _this.doRequest(params).then(function (response) {
 
                                 //data organized into how Grafana expects it.
-                                var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval, query);
+                                var formatedData = dataHandler.formatData(response.data, scrutParams, graphGranularity, query);
 
                                 var noOthers = void 0;
                                 //add ability to filter out other traffic if desired. 
@@ -268,10 +272,13 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                       query.targets.forEach(function (query, index, array) {
                         var scrutParams = makescrutJSON.createParams(_this.scrutInfo, options, query);
                         //figure out the intervale time.
-                        var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams);
+                        var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams, query);
                         _this.doRequest(params).then(function (response) {
+
                           //store interval here.
-                          var selectedInterval = response.data["report_object"].dataGranularity.used;
+
+                          var graphGranularity = response.data["report_object"].graphView.graphGranularity.seconds;
+
                           //set up JSON to go to Scrutinizer API
                           _this.filters = makescrutJSON.createAdhocFilters(filterObject);
                           //add adhoc filters to exhisting filters.
@@ -280,7 +287,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                           scrutParams.scrutFilters = merged;
                           var params = makescrutJSON.reportJSON(_this.scrutInfo, scrutParams);
                           _this.doRequest(params).then(function (response) {
-                            var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval, query);
+                            var formatedData = dataHandler.formatData(response.data, scrutParams, graphGranularity, query);
 
                             var noOthers = void 0;
 
@@ -318,17 +325,17 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                   query.targets.forEach(function (query, index, array) {
                     var scrutParams = makescrutJSON.createParams(_this.scrutInfo, options, query);
                     //figure out the intervale time.
-                    var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams);
+                    var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams, query);
 
                     _this.doRequest(params).then(function (response) {
 
-                      //store interval here.
-                      var selectedInterval = response.data["report_object"].dataGranularity.used;
+                      var graphGranularity = response.data["report_object"].graphView.graphGranularity.seconds;
+
                       //set up JSON to go to Scrutinizer API
                       var params = makescrutJSON.reportJSON(_this.scrutInfo, scrutParams);
                       _this.doRequest(params).then(function (response) {
 
-                        var formatedData = dataHandler.formatData(response.data, scrutParams, selectedInterval, query);
+                        var formatedData = dataHandler.formatData(response.data, scrutParams, graphGranularity, query);
 
                         var noOthers = void 0;
 
@@ -507,6 +514,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 reportFilters: _this3.templateSrv.replace(target.filters || "No Filter", options.scopedVars, "regex"),
 
                 reportDisplay: _this3.templateSrv.replace(target.display || "No Display", options.scopedVars, "regex"),
+
+                reportGranularity: _this3.templateSrv.replace(target.granularity || "Select Granularity", options.scopedVars, "regex"),
 
                 reportDNS: target.dns,
                 hideOthers: target.hideOthers

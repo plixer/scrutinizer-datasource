@@ -3,7 +3,7 @@
 System.register([], function (_export, _context) {
   "use strict";
 
-  var reportTypes, reportDirection, displayOptions, filterTypes;
+  var reportTypes, reportDirection, displayOptions, filterTypes, granularityOptions;
   return {
     setters: [],
     execute: function () {
@@ -61,6 +61,28 @@ System.register([], function (_export, _context) {
       }]);
 
       _export("filterTypes", filterTypes);
+
+      _export("granularityOptions", granularityOptions = [{
+        text: "Auto",
+        value: "auto"
+      }, {
+        text: "1 Minute",
+        value: "1"
+      }, {
+        text: "5 Minute",
+        value: "5"
+      }, {
+        text: "30 Minute",
+        value: "30"
+      }, {
+        text: "2 Hour",
+        value: "120"
+      }, {
+        text: "12 Hour",
+        value: "720"
+      }]);
+
+      _export("granularityOptions", granularityOptions);
     }
   };
 });

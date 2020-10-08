@@ -69,3 +69,29 @@ export const filterTypes = [
 
 
 
+export const granularityOptions = [
+  {
+    text: "Auto",
+    value: "auto"
+  },
+  {
+    text: "1 Minute",
+    value: "1"
+  },
+  {
+    text: "5 Minute",
+    value: "5"
+  },
+  {
+    text: "30 Minute",
+    value: "30"
+  },
+  {
+    text: "2 Hour",
+    value: "120"
+  },
+  {
+    text: "12 Hour",
+    value: "720"
+  }
+];

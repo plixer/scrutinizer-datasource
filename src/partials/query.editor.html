@@ -67,7 +67,16 @@
       >
       </gf-form-dropdown>
     </div>
-
+    <div class="gf-form">
+      <gf-form-dropdown
+        model="ctrl.target.granularity"
+        allow-custom="true"
+        lookup-text="true"
+        get-options="ctrl.getGranularity($query)"
+        on-change="ctrl.onChangeInternal()"
+      >
+      </gf-form-dropdown>
+    </div>
     <gf-form-switch
       class="gf-form"
       label="Resolve DNS"

@@ -26,6 +26,13 @@ export class ScrutinizerJSON {
   }
 // used for single query
   createParams (scrut, options, query) {
+
+    let selectedGranularity = query.reportGranularity
+
+    if(!Number.isInteger(parseInt(selectedGranularity))) {
+      selectedGranularity = 'auto'
+    }
+    
     let {authToken} = scrut;
     let {reportType, reportDirection,reportInterface, target, reportFilters, reportDisplay} = query
     let startTime = options["range"]["from"].unix()
@@ -87,7 +94,8 @@ export class ScrutinizerJSON {
         endTime,
         reportDirection,
         scrutFilters,
-        scrutDisplay
+        scrutDisplay,
+        selectedGranularity
        
   
       }
@@ -188,7 +196,15 @@ createAdhocFilters(filterObject) {
     };
   };
 
-  findtimeJSON(scrutInfo,scrutParams) {
+  findtimeJSON(scrutInfo,scrutParams,query) {
+
+    let selectedGranularity = query.reportGranularity
+
+    if(!Number.isInteger(parseInt(selectedGranularity))) {
+      selectedGranularity = 'auto'
+    }
+    
+
     //params to figure out which interval your in based on data you are requesting
     return {
       url:scrutInfo['url'],
@@ -207,7 +223,7 @@ createAdhocFilters(filterObject) {
             clientTimezone: "America/New_York"
           },
           filters: scrutParams.scrutFilters,
-          dataGranularity: { selected: "auto" },
+          dataGranularity: { selected: selectedGranularity },
           oneCollectorRequest: false
         })
       },
@@ -299,6 +315,8 @@ createAdhocFilters(filterObject) {
   
 
   reportJSON(scrutInfo, scrutParams) {
+
+    let selectedGranularity = scrutParams.selectedGranularity
     //returning report params to be passed into request
     return {
       url:scrutInfo['url'],
@@ -320,7 +338,7 @@ createAdhocFilters(filterObject) {
           orderBy: scrutParams.scrutDisplay["display"],
           filters: scrutParams.scrutFilters,
           dataGranularity: {
-            selected: "auto"
+            selected: selectedGranularity
           },
           showOthers: 0
         }),
@@ -364,11 +382,13 @@ export class Handledata {
     };
   }
 
-  formatData(scrutData, scrutParams, intervalTime, options) {
-
+  formatData(scrutData, scrutParams, graphGranularity, options) {
+ 
     //check if DNS resolve is on. 
     let dnsResolve = options.reportDNS
 
+
+    let graphRes = parseInt(graphGranularity) / 60
 
     let displayValue;
 
@@ -396,7 +416,7 @@ export class Handledata {
       for (i = 0; i < tableData.length; i++) {
         for (j = 0; j < tableData[i].length; j++) {
           tableData[i][j][0] = tableData[i][j][0] * 1000;
-          tableData[i][j][1] = (tableData[i][j][1] * 8) / (intervalTime * 60);
+          tableData[i][j][1] = (tableData[i][j][1] * 8) / (graphRes * 60);
           this.rearrangeData(tableData[i][j], 0, 1);
         }
       }

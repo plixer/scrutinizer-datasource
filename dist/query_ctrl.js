@@ -76,6 +76,7 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           _this.target.type = _this.target.type || 'timeserie';
           _this.target.filters = _this.target.filters;
           _this.target.dns = _this.target.resolveDNS;
+          _this.target.granularity = _this.target.granularity || 'Select Granularity';
           _this.target.hideOthers = _this.target.showOthers;
 
           return _this;
@@ -122,6 +123,11 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           value: function getDirection() {
 
             return this.datasource.reportDirections;
+          }
+        }, {
+          key: 'getGranularity',
+          value: function getGranularity() {
+            return this.datasource.granularityOptions;
           }
         }, {
           key: 'applyFilter',

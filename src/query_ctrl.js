@@ -14,7 +14,9 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.type = this.target.type || 'timeserie';
     this.target.filters = this.target.filters;
     this.target.dns = this.target.resolveDNS;
+    this.target.granularity = this.target.granularity || 'Select Granularity'
     this.target.hideOthers = this.target.showOthers;
+    
 
   }
   //each drop down gets a function that is called by the datasource. 
@@ -49,6 +51,10 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
   getDirection() {
 
     return this.datasource.reportDirections
+  }
+
+  getGranularity(){
+    return this.datasource.granularityOptions
   }
 
 
