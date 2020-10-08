@@ -612,11 +612,11 @@ System.register(["lodash", "moment"], function (_export, _context) {
                 var lowerValue = parseInt(forcestedItem['conf_lower']);
 
                 try {
-                  if (forcestedItem['target'] === item['target'] && forcestedItem['record_type'] === 'train') {
+                  if (forcestedItem['target'] === item['target']) {
                     item['datapoints'].push([meanValue * 8 / 60, epochTime]);
-                  } else if (forcestedItem['target'] + ' upper bound' === item['target']) {
+                  } else if (forcestedItem['target'] + ' upper bound' === item['target'] && forcestedItem['record_type'] === 'forecast') {
                     item['datapoints'].push([upperValue * 8 / 60, epochTime]);
-                  } else if (forcestedItem['target'] + ' lower bound' === item['target']) {
+                  } else if (forcestedItem['target'] + ' lower bound' === item['target'] && forcestedItem['record_type'] === 'forecast') {
                     item['datapoints'].push([lowerValue * 8 / 60, epochTime]);
                   } else if (forcestedItem['target'] + ' predicted' === item['target'] && forcestedItem['record_type'] === 'forecast') {
                     item['datapoints'].push([meanValue * 8 / 60, epochTime]);
@@ -624,6 +624,96 @@ System.register(["lodash", "moment"], function (_export, _context) {
                 } catch (err) {
                   console.log(err);
                 }
+              });
+            });
+
+            return testData;
+          }
+        }, {
+          key: "formatForcastsTest",
+          value: function formatForcastsTest(forcastData, forcastSummary) {
+
+            //store relevant data from API calls into variables for use later. 
+            var summaryData = forcastSummary['data']['inbound_rows'];
+            var forcastResults = forcastData['data']['rows'];
+
+            //holds the LANG Key - > Forcast Regerence
+            var summaryDataArray = [];
+
+            var finalSummaryData = [];
+
+            var testData = [];
+
+            //Holds all of forecast items, latter deduplicated.
+            var forcastItems = Array.from(new Set([]));
+
+            //created object with 1-inbound and the lang comparision (https)
+            summaryData.forEach(function (summaryRow) {
+              summaryRow.forEach(function (itemInSummaryRow) {
+                var keyToCheck = Object.keys(itemInSummaryRow);
+                if (!["Rank", "max_forecast_time", "upper_bound", "expected_value"].includes(keyToCheck[0])) {
+                  var rowLabel = itemInSummaryRow[keyToCheck[0]]['label'];
+                  var rankValue = summaryRow[0]['Rank']['label'] + '-inbound';
+                  summaryDataArray.push({ 'rankValue': rankValue, 'rowLabel': rowLabel });
+                }
+              });
+            });
+
+            forcastResults.forEach(function (row) {
+              forcastItems.push(row['target']);
+            });
+            var uniqueItems = Array.from(new Set(forcastItems));
+
+            uniqueItems.forEach(function (item) {
+
+              finalSummaryData.push({ target: item, datapoints: [] });
+            });
+
+            finalSummaryData.forEach(function (item) {
+              summaryDataArray.forEach(function (summaryItem) {
+                if (item['target'].includes(summaryItem['rankValue'])) {
+                  var replacedItem = item['target'].replace(summaryItem['rankValue'], summaryItem['rowLabel']);
+
+                  testData.push({ target: replacedItem, datapoints: item['datapoints'] });
+                }
+              });
+              try {} catch (e) {}
+            });
+
+            finalSummaryData.forEach(function (item) {
+              forcastResults.forEach(function (forcestedItem) {
+                var epochTime = moment(forcestedItem['intervaltime']).valueOf();
+                var meanValue = parseInt(forcestedItem['mean']);
+                var upperValue = parseInt(forcestedItem['conf_upper']);
+                var lowerValue = parseInt(forcestedItem['conf_lower']);
+
+                if (forcestedItem['target'] === item['target']) {
+                  console.log('item', item);
+                  console.log('forcastedit', forcestedItem);
+                  if (forcestedItem['record_type'] === "train") {
+                    item['datapoints'].push([meanValue * 8 / 60, epochTime]);
+                  } else if (forcestedItem['record_type'] === "forecast") {
+                    item['datapoints'].push([upperValue * 8 / 60, epochTime]);
+                    item['datapoints'].push([lowerValue * 8 / 60, epochTime]);
+                    item['datapoints'].push([meanValue * 8 / 60, epochTime]);
+                  }
+                }
+                // try {
+                //   if(forcestedItem['target'] === item['target'] && forcestedItem['record_type'] === 'train' ){
+                //     item['datapoints'].push([(meanValue  * 8)/60, epochTime])
+
+                //   }else if (forcestedItem['target'] + ' upper bound'=== item['target']){
+                //     item['datapoints'].push([(upperValue * 8)/60 , epochTime])
+                //   } else if (forcestedItem['target'] + ' lower bound'=== item['target']){
+                //     item['datapoints'].push([(lowerValue * 8)/60, epochTime])
+                //   } else if (forcestedItem['target'] + ' predicted' === item['target'] && forcestedItem['record_type'] === 'forecast' ){
+                //     item['datapoints'].push([(meanValue  * 8)/60, epochTime])
+
+                //   }
+                // }
+                // catch(err){
+                //   console.log(err)
+                // }
               });
             });
 

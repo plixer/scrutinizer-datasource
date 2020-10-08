@@ -321,7 +321,7 @@ export class GenericDatasource {
             (response)=>   {
               let forcastSummary = makescrutJSON.forecastSummary(this.scrutInfo,forcastID )
               this.doRequest(forcastSummary).then((data)=>{ 
-                let dataToGraph = dataHandler.formatForcasts(response, data)
+                let dataToGraph = dataHandler.formatForcastsTest(response, data)
 
                 return resolve({ data: dataToGraph })
               })

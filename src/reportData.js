@@ -578,15 +578,17 @@ export class Handledata {
                   let lowerValue = parseInt(forcestedItem['conf_lower'])
 
                   try {
-                    if(forcestedItem['target'] === item['target'] && forcestedItem['record_type'] === 'train' ){
+                    if(forcestedItem['target'] === item['target'] ){
                       item['datapoints'].push([(meanValue  * 8)/60, epochTime])
                       
-                    }else if (forcestedItem['target'] + ' upper bound'=== item['target']){
+                    }else if (forcestedItem['target'] + ' upper bound'=== item['target'] && forcestedItem['record_type'] === 'forecast' ){
                       item['datapoints'].push([(upperValue * 8)/60 , epochTime])
-                    } else if (forcestedItem['target'] + ' lower bound'=== item['target']){
+                      
+                    } else if (forcestedItem['target'] + ' lower bound'=== item['target'] && forcestedItem['record_type'] === 'forecast' ){
                       item['datapoints'].push([(lowerValue * 8)/60, epochTime])
                     } else if (forcestedItem['target'] + ' predicted' === item['target'] && forcestedItem['record_type'] === 'forecast' ){
                       item['datapoints'].push([(meanValue  * 8)/60, epochTime])
+                      
                       
                     }
                   }
@@ -611,6 +613,117 @@ export class Handledata {
 
 
 
+  }
+
+
+  formatForcastsTest(forcastData, forcastSummary){
+
+    //store relevant data from API calls into variables for use later. 
+    let summaryData = forcastSummary['data']['inbound_rows']
+    let forcastResults = forcastData['data']['rows']
+    
+    //holds the LANG Key - > Forcast Regerence
+    let summaryDataArray = []
+
+    let finalSummaryData = []
+
+    let testData = []
+
+    //Holds all of forecast items, latter deduplicated.
+    let forcastItems =Array.from(new Set([]))
+
+        
+        
+    //created object with 1-inbound and the lang comparision (https)
+    summaryData.forEach((summaryRow)=>{
+      summaryRow.forEach((itemInSummaryRow)=>{
+        let keyToCheck = Object.keys(itemInSummaryRow)
+        if(!["Rank","max_forecast_time", "upper_bound", "expected_value"].includes(keyToCheck[0])){
+          let rowLabel = itemInSummaryRow[keyToCheck[0]]['label'] 
+          let rankValue = summaryRow[0]['Rank']['label']+ '-inbound'
+          summaryDataArray.push({'rankValue':rankValue, 'rowLabel':rowLabel})
+
+        }
+      })
+    })
+
+
+
+
+    forcastResults.forEach(row=>{forcastItems.push(row['target'])})
+    let uniqueItems = Array.from(new Set(forcastItems))
+
+
+
+    uniqueItems.forEach((item)=>{
+
+      finalSummaryData.push({target:item, datapoints:[]})
+
+    })
+
+    finalSummaryData.forEach((item)=>{
+      summaryDataArray.forEach((summaryItem)=>{
+        if(item['target'].includes(summaryItem['rankValue'])){
+          let replacedItem = item['target'].replace(summaryItem['rankValue'],summaryItem['rowLabel'] )
+
+          testData.push({target:replacedItem, datapoints:item['datapoints']})
+        }
+      })
+      try {
+        
+
+        
+      }
+      catch(e) {
+
+      }
+      
+
+    })
+
+    finalSummaryData.forEach((item)=>{
+      forcastResults.forEach((forcestedItem)=>{
+        let epochTime = moment(forcestedItem['intervaltime']).valueOf()
+        let meanValue = parseInt(forcestedItem['mean'])
+        let upperValue = parseInt(forcestedItem['conf_upper'])
+        let lowerValue = parseInt(forcestedItem['conf_lower'])
+        
+
+        if(forcestedItem['target'] ===item['target'] ){
+          console.log('item', item)
+          console.log('forcastedit', forcestedItem)
+          if(forcestedItem['record_type']==="train"){
+            item['datapoints'].push([(meanValue  * 8)/60, epochTime])
+          } else if (forcestedItem['record_type']==="forecast"){
+            item['datapoints'].push([(upperValue * 8)/60 , epochTime])
+            item['datapoints'].push([(lowerValue * 8)/60, epochTime])
+            item['datapoints'].push([(meanValue  * 8)/60, epochTime])
+          }
+          
+    
+        }
+        // try {
+        //   if(forcestedItem['target'] === item['target'] && forcestedItem['record_type'] === 'train' ){
+        //     item['datapoints'].push([(meanValue  * 8)/60, epochTime])
+            
+        //   }else if (forcestedItem['target'] + ' upper bound'=== item['target']){
+        //     item['datapoints'].push([(upperValue * 8)/60 , epochTime])
+        //   } else if (forcestedItem['target'] + ' lower bound'=== item['target']){
+        //     item['datapoints'].push([(lowerValue * 8)/60, epochTime])
+        //   } else if (forcestedItem['target'] + ' predicted' === item['target'] && forcestedItem['record_type'] === 'forecast' ){
+        //     item['datapoints'].push([(meanValue  * 8)/60, epochTime])
+            
+        //   }
+        // }
+        // catch(err){
+        //   console.log(err)
+        // }
+
+      })
+    })
+  
+
+      return testData
   }
 
   formatAllForecasts(forcastData){

@@ -319,7 +319,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 _this.doRequest(forecastParams).then(function (response) {
                   var forcastSummary = makescrutJSON.forecastSummary(_this.scrutInfo, forcastID);
                   _this.doRequest(forcastSummary).then(function (data) {
-                    var dataToGraph = dataHandler.formatForcasts(response, data);
+                    var dataToGraph = dataHandler.formatForcastsTest(response, data);
 
                     return resolve({ data: dataToGraph });
                   });
