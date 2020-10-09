@@ -312,7 +312,43 @@ createAdhocFilters(filterObject) {
     
     //params to figure out which interfaces exist for a device
    
+
+  getAllEntities(scrutInfo, entityName) {
+      return {
+        url:scrutInfo['url'],
+        method: "GET",
+        params: {
+          rm: "status",
+          view: entityName,
+          authToken: scrutInfo["authToken"]
+        }
+      };
+    };
   
+  
+  getEntityTimeseries(scrutInfo,entity_id, query, runmode){
+
+    let startTime = query["range"]["from"].unix()
+    let endTime = query["range"]["to"].unix()
+
+    let rmTypes = {
+      applications:"alarmsEntityApplication",
+      protocols:"alarmsEntityProtocol"
+    }
+
+    return {
+      url:scrutInfo['url'],
+      method: "GET",
+      params: {
+        rm: rmTypes[runmode],
+        view: "load",
+        authToken: scrutInfo["authToken"],
+        app_id:entity_id,
+        st:startTime,
+        et:endTime
+      }
+    };
+  }
 
   reportJSON(scrutInfo, scrutParams) {
 
@@ -381,6 +417,34 @@ export class Handledata {
       return arr;
     };
   }
+
+  formatEntities(entityData){
+    let entityArray = entityData['data']['rows']
+    entityArray.forEach((row)=>{
+      
+
+    })
+  }
+
+  formatEntityData(entity, entityLabel){{
+
+  
+    // let entityID = entity['trend'][0]['app_id']
+    console.log(entityLabel)
+    let dataToGraph = {
+      target:String(entityLabel),
+      datapoints:[]
+    }
+    entity['data']['trend'].forEach((graphPoint)=>{
+
+     
+      let pointInTime = [parseInt(graphPoint['bytes']),(graphPoint['ts'] * 1000)]
+
+      dataToGraph['datapoints'].push(pointInTime)
+    })
+    console.log(dataToGraph)
+    return dataToGraph
+  }}
 
   formatData(scrutData, scrutParams, graphGranularity, options) {
  

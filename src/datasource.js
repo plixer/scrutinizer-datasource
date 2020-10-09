@@ -315,6 +315,8 @@ export class GenericDatasource {
         });
       } else {
         //else block meands you don't have any adhoc filters applied.
+
+        
         if (
           (query.targets[checkStart].target !== undefined ||
             "Select Exporter") &&
@@ -327,7 +329,48 @@ export class GenericDatasource {
 
         //once all drop downs are selected, run the report.
         if (this.runReport == true) {
+
+          let runmode = 'applications'
+          let entityParams = makescrutJSON.getAllEntities(this.scrutInfo, runmode)
+          let someArray = []
+          this.doRequest(entityParams).then(response=>{
+
+            let entityArray = response['data']['rows']
+            entityArray.forEach((entity)=>{        
+              
+              let entityId = entity[0]['entity_id']
+              let entityLabel = entity[0]['label']
+              let entityTimeSeries = makescrutJSON.getEntityTimeseries(this.scrutInfo,entityId, query, runmode)
+              this.doRequest(entityTimeSeries).then((entityData)=>{
+                  console.log(entityData)
+                  let graphEntity = dataHandler.formatEntityData(entityData, entityLabel)
+               
+                  someArray.push(graphEntity)
+              }).then((something)=>{
+                if(someArray.length >= 10
+                  ){
+                  return resolve({ data: someArray })
+                }
+              })
+              
+            }
+
+            
+            )
+            
+          })
+  
+
+          // let timeSeriesParams = makescrutJSON.getEntityTimeseries(this.scrutInfo,'1116167', query)
+          // this.doRequest(timeSeriesParams).then(
+          //   (response)=>{
+          //     let entityData =dataHandler.formatEntityData(response)
+
+          //     console.log({ data: [entityData] });
+          //   })
           
+          
+
           query.targets.forEach((query, index, array) => {
             let scrutParams = makescrutJSON.createParams(
               this.scrutInfo,

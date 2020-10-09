@@ -315,12 +315,47 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 });
               } else {
                 //else block meands you don't have any adhoc filters applied.
+
+
                 if ((query.targets[checkStart].target !== undefined || "Select Exporter") && query.targets[checkStart].reportInterface !== "Select Interface" && query.targets[checkStart].reportDirection !== "Select Direction" && query.targets[checkStart].reportType !== "Select Report") {
                   _this.runReport = true;
                 }
 
                 //once all drop downs are selected, run the report.
                 if (_this.runReport == true) {
+
+                  var runmode = 'applications';
+                  var entityParams = makescrutJSON.getAllEntities(_this.scrutInfo, runmode);
+                  var someArray = [];
+                  _this.doRequest(entityParams).then(function (response) {
+
+                    var entityArray = response['data']['rows'];
+                    entityArray.forEach(function (entity) {
+
+                      var entityId = entity[0]['entity_id'];
+                      var entityLabel = entity[0]['label'];
+                      var entityTimeSeries = makescrutJSON.getEntityTimeseries(_this.scrutInfo, entityId, query, runmode);
+                      _this.doRequest(entityTimeSeries).then(function (entityData) {
+                        console.log(entityData);
+                        var graphEntity = dataHandler.formatEntityData(entityData, entityLabel);
+
+                        someArray.push(graphEntity);
+                      }).then(function (something) {
+                        if (someArray.length >= 10) {
+                          return resolve({ data: someArray });
+                        }
+                      });
+                    });
+                  });
+
+                  // let timeSeriesParams = makescrutJSON.getEntityTimeseries(this.scrutInfo,'1116167', query)
+                  // this.doRequest(timeSeriesParams).then(
+                  //   (response)=>{
+                  //     let entityData =dataHandler.formatEntityData(response)
+
+                  //     console.log({ data: [entityData] });
+                  //   })
+
 
                   query.targets.forEach(function (query, index, array) {
                     var scrutParams = makescrutJSON.createParams(_this.scrutInfo, options, query);

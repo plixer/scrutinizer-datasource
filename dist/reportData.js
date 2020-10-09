@@ -356,6 +356,44 @@ System.register(["lodash"], function (_export, _context) {
             }
           }
         }, {
+          key: "getAllEntities",
+          value: function getAllEntities(scrutInfo, entityName) {
+            return {
+              url: scrutInfo['url'],
+              method: "GET",
+              params: {
+                rm: "status",
+                view: entityName,
+                authToken: scrutInfo["authToken"]
+              }
+            };
+          }
+        }, {
+          key: "getEntityTimeseries",
+          value: function getEntityTimeseries(scrutInfo, entity_id, query, runmode) {
+
+            var startTime = query["range"]["from"].unix();
+            var endTime = query["range"]["to"].unix();
+
+            var rmTypes = {
+              applications: "alarmsEntityApplication",
+              protocols: "alarmsEntityProtocol"
+            };
+
+            return {
+              url: scrutInfo['url'],
+              method: "GET",
+              params: {
+                rm: rmTypes[runmode],
+                view: "load",
+                authToken: scrutInfo["authToken"],
+                app_id: entity_id,
+                st: startTime,
+                et: endTime
+              }
+            };
+          }
+        }, {
           key: "reportJSON",
           value: function reportJSON(scrutInfo, scrutParams) {
 
@@ -431,6 +469,33 @@ System.register(["lodash"], function (_export, _context) {
         }
 
         _createClass(Handledata, [{
+          key: "formatEntities",
+          value: function formatEntities(entityData) {
+            var entityArray = entityData['data']['rows'];
+            entityArray.forEach(function (row) {});
+          }
+        }, {
+          key: "formatEntityData",
+          value: function formatEntityData(entity, entityLabel) {
+            {
+
+              // let entityID = entity['trend'][0]['app_id']
+              console.log(entityLabel);
+              var dataToGraph = {
+                target: String(entityLabel),
+                datapoints: []
+              };
+              entity['data']['trend'].forEach(function (graphPoint) {
+
+                var pointInTime = [parseInt(graphPoint['bytes']), graphPoint['ts'] * 1000];
+
+                dataToGraph['datapoints'].push(pointInTime);
+              });
+              console.log(dataToGraph);
+              return dataToGraph;
+            }
+          }
+        }, {
           key: "formatData",
           value: function formatData(scrutData, scrutParams, graphGranularity, options) {
 
