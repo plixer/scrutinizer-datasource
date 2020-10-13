@@ -4,6 +4,7 @@ import './css/query-editor.css!'
 export class GenericDatasourceQueryCtrl extends QueryCtrl {
   //creates the link between dropdowns and the datasource
   constructor($scope, $injector)  {
+
     super($scope, $injector);
     this.scope = $scope;
     this.target.target = this.target.target || 'Select Exporter';
@@ -14,13 +15,16 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.type = this.target.type || 'timeserie';
     this.target.filters = this.target.filters;
     this.target.dns = this.target.resolveDNS;
-    this.target.granularity = this.target.granularity || 'Select Granularity'
+    this.target.granularity = this.target.granularity || 'Select Granularity';
+    this.target.entity = this.target.entity || 'Select Entity';
+    this.target.entityRows = this.target.entityRows || 'Number of Results';
     this.target.hideOthers = this.target.showOthers;
     
 
   }
   //each drop down gets a function that is called by the datasource. 
   getOptions(query) {
+  
 
     return this.datasource.getExporters(query || '', this.scope);
   }
@@ -31,6 +35,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     return this.datasource.findInterfaces(query || '', this.scope)
   }
   toggleEditorMode() {
+    console.log(query)
     this.target.rawQuery = !this.target.rawQuery;
   }
 
@@ -53,6 +58,18 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     return this.datasource.reportDirections
   }
 
+  getEntities() {
+
+
+    return this.datasource.entityTypes
+  }
+
+
+  getEntitiesRows() {
+
+
+    return this.datasource.entityRowCount
+  }
   getGranularity(){
     return this.datasource.granularityOptions
   }

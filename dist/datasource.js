@@ -3,7 +3,7 @@
 System.register(["lodash", "./reportData", "./reportTypes"], function (_export, _context) {
   "use strict";
 
-  var _, ScrutinizerJSON, Handledata, reportTypes, reportDirection, displayOptions, filterTypes, granularityOptions, _extends, _createClass, makescrutJSON, dataHandler, GenericDatasource;
+  var _, ScrutinizerJSON, Handledata, reportTypes, reportDirection, displayOptions, filterTypes, granularityOptions, entityTypes, entityRowCount, _extends, _createClass, makescrutJSON, dataHandler, GenericDatasource;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -23,6 +23,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
       displayOptions = _reportTypes.displayOptions;
       filterTypes = _reportTypes.filterTypes;
       granularityOptions = _reportTypes.granularityOptions;
+      entityTypes = _reportTypes.entityTypes;
+      entityRowCount = _reportTypes.entityRowCount;
     }],
     execute: function () {
       _extends = Object.assign || function (target) {
@@ -73,6 +75,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           this.reportDirections = reportDirection;
           this.granularityOptions = granularityOptions;
           this.displayOptions = displayOptions;
+          this.entityTypes = entityTypes;
+          this.entityRowCount = entityRowCount;
           this.withCredentials = instanceSettings.withCredentials;
           this.liveQuery = "";
           this.headers = { "Content-Type": "application/json" };
@@ -321,43 +325,57 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                   _this.runReport = true;
                 }
 
+                if (query.targets[checkStart].target === 'entityView' && query.targets[checkStart].reportEntity !== "Select Entity") {
+                  _this.runReport = true;
+                }
+
                 //once all drop downs are selected, run the report.
                 if (_this.runReport == true) {
 
-                  var runmode = 'applications';
-                  var entityParams = makescrutJSON.getAllEntities(_this.scrutInfo, runmode);
-                  var someArray = [];
-                  _this.doRequest(entityParams).then(function (response) {
-
-                    var entityArray = response['data']['rows'];
-                    entityArray.forEach(function (entity) {
-
-                      var entityId = entity[0]['entity_id'];
-                      var entityLabel = entity[0]['label'];
-                      var entityTimeSeries = makescrutJSON.getEntityTimeseries(_this.scrutInfo, entityId, query, runmode);
-                      _this.doRequest(entityTimeSeries).then(function (entityData) {
-                        console.log(entityData);
-                        var graphEntity = dataHandler.formatEntityData(entityData, entityLabel);
-
-                        someArray.push(graphEntity);
-                      }).then(function (something) {
-                        if (someArray.length >= 10) {
-                          return resolve({ data: someArray });
-                        }
-                      });
-                    });
-                  });
-
-                  // let timeSeriesParams = makescrutJSON.getEntityTimeseries(this.scrutInfo,'1116167', query)
-                  // this.doRequest(timeSeriesParams).then(
-                  //   (response)=>{
-                  //     let entityData =dataHandler.formatEntityData(response)
-
-                  //     console.log({ data: [entityData] });
-                  //   })
-
-
                   query.targets.forEach(function (query, index, array) {
+
+                    if (query.target === "entityView") {
+                      var entityChosen = query.reportEntity;
+
+                      var entityParams = makescrutJSON.getAllEntities(_this.scrutInfo, entityChosen);
+                      var entityDataArray = [];
+
+                      _this.doRequest(entityParams).then(function (response) {
+
+                        var rowsToReturn = query['reportEntityRows'];
+                        if (rowsToReturn === 'Number of Results') {
+                          rowsToReturn = 10;
+                        }
+                        var entityArray = response['data']['rows'];
+
+                        entityArray.forEach(function (entity) {
+
+                          var entityId = entity[0]['entity_id'];
+                          var entityLabel = entity[0]['label'];
+                          var entityTimeSeries = makescrutJSON.getEntityTimeseries(_this.scrutInfo, entityId, options, query);
+
+                          _this.doRequest(entityTimeSeries).then(function (entityData) {
+
+                            var graphEntity = dataHandler.formatEntityData(entityData, entityLabel, entityChosen);
+                            entityDataArray.push(graphEntity);
+
+                            if (entityDataArray.length >= parseInt(entityArray.length)) {
+                              entityDataArray.sort(function (a, b) {
+                                return b.bytesTotal - a.bytesTotal;
+                              });
+                              numberOfQueries++;
+                              if (numberOfQueries === array.length) {
+                                console.log(entityDataArray);
+                                return resolve({ data: entityDataArray.slice(0, rowsToReturn) });
+                              }
+                            }
+                          });
+                        });
+                      });
+
+                      return;
+                    }
+
                     var scrutParams = makescrutJSON.createParams(_this.scrutInfo, options, query);
                     //figure out the intervale time.
                     var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams, query);
@@ -502,7 +520,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
             var params = makescrutJSON.exporterJSON(this.scrutInfo);
             return this.doRequest(params).then(function (response) {
-              var exporterList = [{ text: "All Exporters", value: "allExporters" }, { text: "Device Group", value: "deviceGroup" }];
+              var exporterList = [{ text: "All Exporters", value: "allExporters" }, { text: "Entity Reports", value: "entityView" }, { text: "Device Group", value: "deviceGroup" }];
               for (var i = 0; i < response.data.length; i++) {
                 exporterList.push({
                   text: response.data[i]["name"],
@@ -552,6 +570,8 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
                 reportGranularity: _this3.templateSrv.replace(target.granularity || "Select Granularity", options.scopedVars, "regex"),
 
+                reportEntity: _this3.templateSrv.replace(target.entity || "Select Entity", options.scopedVars, "regex"),
+                reportEntityRows: _this3.templateSrv.replace(target.entityRows || "Number of Results", options.scopedVars, "regex"),
                 reportDNS: target.dns,
                 hideOthers: target.hideOthers
               };

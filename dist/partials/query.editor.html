@@ -6,7 +6,7 @@
   <div class="gf-form-inline">
 
 
-    <div ng-if="!ctrl.target.rawQuery">
+
       <div class="gf-form">
         <gf-form-dropdown
           model="ctrl.target.target"
@@ -17,9 +17,37 @@
         >
         </gf-form-dropdown>
       </div>
-    </div>
 
-    <div ng-if="!ctrl.target.rawQuery">
+      <div ng-if="ctrl.target.target === 'entityView'">
+        <div class="gf-form">
+          <gf-form-dropdown
+            model="ctrl.target.entity"
+            allow-custom="true"
+            lookup-text="true"
+            get-options="ctrl.getEntities($query)"
+            on-change="ctrl.onChangeInternal()"
+          >
+          </gf-form-dropdown>
+        </div>
+      </div>
+
+
+      <div ng-if="ctrl.target.target === 'entityView'">
+        <div class="gf-form">
+          <gf-form-dropdown
+            model="ctrl.target.entityRows"
+            allow-custom="true"
+            lookup-text="true"
+            get-options="ctrl.getEntitiesRows($query)"
+            on-change="ctrl.onChangeInternal()"
+          >
+          </gf-form-dropdown>
+        </div>
+      </div>
+
+
+
+    <div ng-if="ctrl.target.target !== 'entityView'">
       <div class="gf-form">
         <gf-form-dropdown
           model="ctrl.target.interface"
@@ -32,7 +60,7 @@
       </div>
     </div>
 
-    <div ng-if="!ctrl.target.rawQuery">
+    <div ng-if="ctrl.target.target !== 'entityView'">
       <div class="gf-form">
         <gf-form-dropdown
           model="ctrl.target.report"
@@ -44,6 +72,8 @@
         </gf-form-dropdown>
       </div>
     </div>
+  
+  <div ng-if="ctrl.target.target !== 'entityView'">
     <div ng-if="ctrl.target.report === 'interfaces'">
       <div class="gf-form">
         <gf-form-dropdown
@@ -56,7 +86,10 @@
         </gf-form-dropdown>
       </div>
     </div>
+  </div>
 
+
+  <div ng-if="ctrl.target.target !== 'entityView'">
     <div class="gf-form">
       <gf-form-dropdown
         model="ctrl.target.direction"
@@ -67,6 +100,8 @@
       >
       </gf-form-dropdown>
     </div>
+  </div>
+  <div ng-if="ctrl.target.target !== 'entityView'">
     <div class="gf-form">
       <gf-form-dropdown
         model="ctrl.target.granularity"
@@ -77,6 +112,8 @@
       >
       </gf-form-dropdown>
     </div>
+  </div>
+  <div ng-if="ctrl.target.target !== 'entityView'">
     <gf-form-switch
       class="gf-form"
       label="Resolve DNS"
@@ -90,7 +127,8 @@
         </div>
       </label>
     </gf-form-switch>
-
+  </div>
+  <div ng-if="ctrl.target.target !== 'entityView'">
     <gf-form-switch
       class="gf-form"
       label="Hide Other"
@@ -107,7 +145,9 @@
         <!---->
       </label>
     </gf-form-switch>
+  </div>
 
+  <div ng-if="ctrl.target.target !== 'entityView'">
     <gf-form-checkbox
       class="gf-form"
       label="Add Filter"
@@ -166,5 +206,7 @@
 
       <!---->
     </div>
+ 
   </div>
+</div>
 </query-editor-row>

@@ -358,6 +358,10 @@ System.register(["lodash"], function (_export, _context) {
         }, {
           key: "getAllEntities",
           value: function getAllEntities(scrutInfo, entityName) {
+
+            if (entityName === 'srcHosts' || entityName === 'dstHosts') {
+              entityName = 'hosts';
+            }
             return {
               url: scrutInfo['url'],
               method: "GET",
@@ -370,28 +374,74 @@ System.register(["lodash"], function (_export, _context) {
           }
         }, {
           key: "getEntityTimeseries",
-          value: function getEntityTimeseries(scrutInfo, entity_id, query, runmode) {
+          value: function getEntityTimeseries(scrutInfo, entity_id, options, query) {
 
-            var startTime = query["range"]["from"].unix();
-            var endTime = query["range"]["to"].unix();
+            var entityType = query.reportEntity;
+            var startTime = options["range"]["from"].unix();
+            var endTime = options["range"]["to"].unix();
 
             var rmTypes = {
               applications: "alarmsEntityApplication",
-              protocols: "alarmsEntityProtocol"
+              protocols: "alarmsEntityProtocol",
+              srcIPGroups: "alarmsEntityIPGroup",
+              dstIPGroups: "alarmsEntityIPGroup",
+              srcHosts: "alarmsEntityHost",
+              dstHosts: "alarmsEntityHost"
             };
 
-            return {
-              url: scrutInfo['url'],
-              method: "GET",
-              params: {
-                rm: rmTypes[runmode],
-                view: "load",
-                authToken: scrutInfo["authToken"],
-                app_id: entity_id,
-                st: startTime,
-                et: endTime
-              }
-            };
+            if (entityType === 'applications') {
+              return {
+                url: scrutInfo['url'],
+                method: "GET",
+                params: {
+                  rm: rmTypes[entityType],
+                  view: "load",
+                  authToken: scrutInfo["authToken"],
+                  app_id: entity_id,
+                  st: startTime,
+                  et: endTime
+                }
+              };
+            } else if (entityType === 'protocols') {
+              return {
+                url: scrutInfo['url'],
+                method: "GET",
+                params: {
+                  rm: rmTypes[entityType],
+                  view: "load",
+                  authToken: scrutInfo["authToken"],
+                  src_id: entity_id,
+                  st: startTime,
+                  et: endTime
+                }
+              };
+            } else if (entityType === 'srcHosts') {
+              return {
+                url: scrutInfo['url'],
+                method: "GET",
+                params: {
+                  rm: rmTypes[entityType],
+                  view: "trend",
+                  authToken: scrutInfo["authToken"],
+                  src: entity_id,
+                  st: startTime,
+                  et: endTime
+                }
+              };
+            } else if (entityType === 'dstHosts') {
+              return {
+                url: scrutInfo['url'],
+                method: "GET",
+                params: {
+                  rm: rmTypes[entityType],
+                  view: "trend",
+                  authToken: scrutInfo["authToken"],
+                  dst: entity_id,
+                  st: startTime,
+                  et: endTime
+                }
+              };
+            }
           }
         }, {
           key: "reportJSON",
@@ -469,31 +519,62 @@ System.register(["lodash"], function (_export, _context) {
         }
 
         _createClass(Handledata, [{
-          key: "formatEntities",
-          value: function formatEntities(entityData) {
-            var entityArray = entityData['data']['rows'];
-            entityArray.forEach(function (row) {});
-          }
-        }, {
           key: "formatEntityData",
-          value: function formatEntityData(entity, entityLabel) {
-            {
+          value: function formatEntityData(entity, entityLabel, entityChosen) {
+            var targetLabel = void 0;
+            if (entityChosen === 'srcHosts') {
+              targetLabel = 'Src_' + entityLabel;
+            } else if (entityChosen === 'dstHosts') {
+              targetLabel = 'Dst_' + entityLabel;
+            } else {
+              targetLabel = entityLabel;
+            }
+            var dataToGraph = {
+              target: String(targetLabel),
+              datapoints: [],
+              bytesTotal: 0
+            };
 
-              // let entityID = entity['trend'][0]['app_id']
-              console.log(entityLabel);
-              var dataToGraph = {
-                target: String(entityLabel),
-                datapoints: []
-              };
-              entity['data']['trend'].forEach(function (graphPoint) {
+            var entityData = entity['data']['trend'];
+            console.log(entityChosen);
+            if (entityChosen === 'applications') {
+              entityData.forEach(function (graphPoint) {
 
                 var pointInTime = [parseInt(graphPoint['bytes']), graphPoint['ts'] * 1000];
 
                 dataToGraph['datapoints'].push(pointInTime);
+                dataToGraph['bytesTotal'] = dataToGraph['bytesTotal'] += parseInt(graphPoint['bytes']);
               });
-              console.log(dataToGraph);
-              return dataToGraph;
+            } else if (entityChosen === 'protocols') {
+
+              entityData.forEach(function (graphPoint) {
+                if (graphPoint['name'] === entityLabel) {
+                  var pointInTime = [parseInt(graphPoint['bytes']), graphPoint['ts'] * 1000];
+                  dataToGraph['datapoints'].push(pointInTime);
+                  dataToGraph['bytesTotal'] = dataToGraph['bytesTotal'] += parseInt(graphPoint['bytes']);
+                }
+              });
+            } else if (entityChosen === 'srcHosts') {
+              entityData.forEach(function (graphPoint) {
+                if (graphPoint['src'] === entityLabel) {
+                  var pointInTime = [parseInt(graphPoint['src_bytes']), graphPoint['ts'] * 1000];
+
+                  dataToGraph['datapoints'].push(pointInTime);
+                  dataToGraph['bytesTotal'] = dataToGraph['bytesTotal'] += parseInt(graphPoint['src_bytes']);
+                }
+              });
+            } else if (entityChosen === 'dstHosts') {
+              entityData.forEach(function (graphPoint) {
+                if (graphPoint['dst'] === entityLabel) {
+                  var pointInTime = [parseInt(graphPoint['dst_bytes']), graphPoint['ts'] * 1000];
+
+                  dataToGraph['datapoints'].push(pointInTime);
+                  dataToGraph['bytesTotal'] = dataToGraph['bytesTotal'] += parseInt(graphPoint['dst_bytes']);
+                }
+              });
             }
+
+            return dataToGraph;
           }
         }, {
           key: "formatData",

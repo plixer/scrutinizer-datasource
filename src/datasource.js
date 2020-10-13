@@ -5,7 +5,9 @@ import {
   reportDirection,
   displayOptions,
   filterTypes,
-  granularityOptions
+  granularityOptions,
+  entityTypes,
+  entityRowCount
 } from "./reportTypes";
 
 let makescrutJSON = new ScrutinizerJSON();
@@ -22,6 +24,8 @@ export class GenericDatasource {
     this.reportDirections = reportDirection;
     this.granularityOptions = granularityOptions;
     this.displayOptions = displayOptions;
+    this.entityTypes = entityTypes;
+    this.entityRowCount = entityRowCount;
     this.withCredentials = instanceSettings.withCredentials;
     this.liveQuery = "";
     this.headers = { "Content-Type": "application/json" };
@@ -49,7 +53,6 @@ export class GenericDatasource {
   }
 
   query(options) {
-
 
     //store number of queries being run, make sure to run a Scrutinizer request for each query made.
     let numberOfQueries = 0;
@@ -316,7 +319,7 @@ export class GenericDatasource {
       } else {
         //else block meands you don't have any adhoc filters applied.
 
-        
+    
         if (
           (query.targets[checkStart].target !== undefined ||
             "Select Exporter") &&
@@ -327,51 +330,71 @@ export class GenericDatasource {
           this.runReport = true;
         }
 
+        if (query.targets[checkStart].target === 'entityView' && 
+          query.targets[checkStart].reportEntity !== "Select Entity"){
+            this.runReport = true;
+          }
+  
         //once all drop downs are selected, run the report.
         if (this.runReport == true) {
 
-          let runmode = 'applications'
-          let entityParams = makescrutJSON.getAllEntities(this.scrutInfo, runmode)
-          let someArray = []
-          this.doRequest(entityParams).then(response=>{
-
-            let entityArray = response['data']['rows']
-            entityArray.forEach((entity)=>{        
-              
-              let entityId = entity[0]['entity_id']
-              let entityLabel = entity[0]['label']
-              let entityTimeSeries = makescrutJSON.getEntityTimeseries(this.scrutInfo,entityId, query, runmode)
-              this.doRequest(entityTimeSeries).then((entityData)=>{
-                  console.log(entityData)
-                  let graphEntity = dataHandler.formatEntityData(entityData, entityLabel)
-               
-                  someArray.push(graphEntity)
-              }).then((something)=>{
-                if(someArray.length >= 10
-                  ){
-                  return resolve({ data: someArray })
-                }
-              })
-              
-            }
-
-            
-            )
-            
-          })
-  
-
-          // let timeSeriesParams = makescrutJSON.getEntityTimeseries(this.scrutInfo,'1116167', query)
-          // this.doRequest(timeSeriesParams).then(
-          //   (response)=>{
-          //     let entityData =dataHandler.formatEntityData(response)
-
-          //     console.log({ data: [entityData] });
-          //   })
           
           
 
           query.targets.forEach((query, index, array) => {
+
+            if(query.target === "entityView"){
+              let entityChosen = query.reportEntity
+ 
+              let entityParams = makescrutJSON.getAllEntities(this.scrutInfo, entityChosen)
+              let entityDataArray = []
+              
+
+              this.doRequest(entityParams).then(response=>{
+            
+                let rowsToReturn = query['reportEntityRows']
+                if (rowsToReturn === 'Number of Results') {
+                   rowsToReturn = 10
+                }
+                let entityArray = response['data']['rows']
+
+                entityArray.forEach((entity)=>{    
+          
+
+                  let entityId = entity[0]['entity_id']
+                  let entityLabel = entity[0]['label']
+                  let entityTimeSeries = makescrutJSON.getEntityTimeseries(this.scrutInfo,entityId, options, query)
+   
+                  this.doRequest(entityTimeSeries).then((entityData)=>{
+                          
+                      let graphEntity = dataHandler.formatEntityData(entityData, entityLabel, entityChosen)
+                      entityDataArray.push(graphEntity)
+
+                      if(entityDataArray.length >= parseInt(entityArray.length)){
+                        entityDataArray.sort((a,b)=>{
+                          return b.bytesTotal - a.bytesTotal
+                        })
+                        numberOfQueries++;
+                        if (numberOfQueries === array.length) {
+                          console.log(entityDataArray)
+                          return resolve({ data: entityDataArray.slice(0,rowsToReturn) })
+                        }
+                      
+                    }
+                  })
+                  
+                }
+    
+                
+                )
+                
+              })
+      
+    
+              return
+            }
+
+
             let scrutParams = makescrutJSON.createParams(
               this.scrutInfo,
               options,
@@ -544,6 +567,7 @@ export class GenericDatasource {
     return this.doRequest(params).then(response => {
       let exporterList = [
         { text: "All Exporters", value: "allExporters" },
+        { text: "Entity Reports", value: "entityView" },
         { text: "Device Group", value: "deviceGroup" }
       ];
       for (let i = 0; i < response.data.length; i++) {
@@ -622,6 +646,16 @@ export class GenericDatasource {
           "regex"
         ),
 
+        reportEntity: this.templateSrv.replace(
+          target.entity || "Select Entity",
+          options.scopedVars,
+          "regex"
+        ),
+        reportEntityRows: this.templateSrv.replace(
+          target.entityRows || "Number of Results",
+          options.scopedVars,
+          "regex"
+        ),
         reportDNS: target.dns,
         hideOthers:target.hideOthers
       };

@@ -3,7 +3,7 @@
 System.register([], function (_export, _context) {
   "use strict";
 
-  var reportTypes, reportDirection, displayOptions, filterTypes, granularityOptions;
+  var reportTypes, reportDirection, displayOptions, filterTypes, granularityOptions, entityTypes, entityRowCount;
   return {
     setters: [],
     execute: function () {
@@ -83,6 +83,47 @@ System.register([], function (_export, _context) {
       }]);
 
       _export("granularityOptions", granularityOptions);
+
+      _export("entityTypes", entityTypes = [{
+        text: "Applications",
+        value: "applications"
+      }, {
+        text: "Source Hosts",
+        value: "srcHosts"
+      }, {
+        text: "Destination Hosts",
+        value: "dstHosts"
+      }, {
+        text: "Autonomous Systems",
+        value: "autonomous-systems"
+      }, {
+        text: "IP Groups",
+        value: "ipgroups"
+      }, {
+        text: "Countries",
+        value: "countries"
+      }, {
+        text: "Protocols",
+        value: "protocols"
+      }]);
+
+      _export("entityTypes", entityTypes);
+
+      _export("entityRowCount", entityRowCount = [{
+        text: "Top 10",
+        value: "10"
+      }, {
+        text: "Top 25",
+        value: "25"
+      }, {
+        text: "Top 50",
+        value: "50"
+      }, {
+        text: "Top 100",
+        value: "100"
+      }]);
+
+      _export("entityRowCount", entityRowCount);
     }
   };
 });

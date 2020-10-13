@@ -314,6 +314,10 @@ createAdhocFilters(filterObject) {
    
 
   getAllEntities(scrutInfo, entityName) {
+
+    if (entityName === 'srcHosts' || entityName === 'dstHosts'){
+      entityName = 'hosts'
+    }
       return {
         url:scrutInfo['url'],
         method: "GET",
@@ -326,29 +330,88 @@ createAdhocFilters(filterObject) {
     };
   
   
-  getEntityTimeseries(scrutInfo,entity_id, query, runmode){
-
-    let startTime = query["range"]["from"].unix()
-    let endTime = query["range"]["to"].unix()
-
+  getEntityTimeseries(scrutInfo,entity_id, options, query){
+    
+    let entityType = query.reportEntity
+    let startTime = options["range"]["from"].unix()
+    let endTime = options["range"]["to"].unix()
+    
     let rmTypes = {
       applications:"alarmsEntityApplication",
-      protocols:"alarmsEntityProtocol"
+      protocols:"alarmsEntityProtocol",
+      srcIPGroups: "alarmsEntityIPGroup",
+      dstIPGroups: "alarmsEntityIPGroup",
+      srcHosts: "alarmsEntityHost",
+      dstHosts:"alarmsEntityHost"
     }
-
-    return {
-      url:scrutInfo['url'],
-      method: "GET",
-      params: {
-        rm: rmTypes[runmode],
-        view: "load",
-        authToken: scrutInfo["authToken"],
-        app_id:entity_id,
-        st:startTime,
-        et:endTime
+   
+    if (entityType === 'applications')
+    {
+      return {
+        url:scrutInfo['url'],
+        method: "GET",
+        params: {
+          rm: rmTypes[entityType],
+          view: "load",
+          authToken: scrutInfo["authToken"],
+          app_id:entity_id,
+          st:startTime,
+          et:endTime
+        }
+      };
+    } else if(entityType === 'protocols') {
+      return {
+        url:scrutInfo['url'],
+        method: "GET",
+        params: {
+          rm: rmTypes[entityType],
+          view: "load",
+          authToken: scrutInfo["authToken"],
+          src_id:entity_id,
+          st:startTime,
+          et:endTime
+        }
       }
-    };
-  }
+    }else if(entityType === 'srcHosts') {
+      return {
+        url:scrutInfo['url'],
+        method: "GET",
+        params: {
+          rm: rmTypes[entityType],
+          view: "trend",
+          authToken: scrutInfo["authToken"],
+          src:entity_id,
+          st:startTime,
+          et:endTime
+        }
+      }
+    }else if(entityType === 'dstHosts') {
+      return {
+        url:scrutInfo['url'],
+        method: "GET",
+        params: {
+          rm: rmTypes[entityType],
+          view: "trend",
+          authToken: scrutInfo["authToken"],
+          dst:entity_id,
+          st:startTime,
+          et:endTime
+        }
+      }
+    }
+    
+
+
+
+        
+
+       
+    } 
+
+  
+
+
+ 
 
   reportJSON(scrutInfo, scrutParams) {
 
@@ -418,33 +481,73 @@ export class Handledata {
     };
   }
 
-  formatEntities(entityData){
-    let entityArray = entityData['data']['rows']
-    entityArray.forEach((row)=>{
-      
 
-    })
-  }
 
-  formatEntityData(entity, entityLabel){{
-
-  
-    // let entityID = entity['trend'][0]['app_id']
-    console.log(entityLabel)
-    let dataToGraph = {
-      target:String(entityLabel),
-      datapoints:[]
+  formatEntityData(entity, entityLabel, entityChosen){
+    let targetLabel
+    if(entityChosen === 'srcHosts'){
+      targetLabel = 'Src_' + entityLabel
+    }else if (entityChosen === 'dstHosts'){
+      targetLabel =  'Dst_' + entityLabel
+    }else{
+      targetLabel = entityLabel
     }
-    entity['data']['trend'].forEach((graphPoint)=>{
+    let dataToGraph = {
+      target:String(targetLabel),
+      datapoints:[],
+      bytesTotal: 0
+    }
+
+    let entityData = entity['data']['trend']
+    console.log(entityChosen)
+    if(entityChosen === 'applications'){ 
+      entityData.forEach((graphPoint)=>{
 
      
-      let pointInTime = [parseInt(graphPoint['bytes']),(graphPoint['ts'] * 1000)]
+        let pointInTime = [parseInt(graphPoint['bytes']),(graphPoint['ts'] * 1000)]
+  
+        dataToGraph['datapoints'].push(pointInTime)
+        dataToGraph['bytesTotal'] = dataToGraph['bytesTotal'] += parseInt(graphPoint['bytes'])
+      })
+    } else if (entityChosen === 'protocols') {
 
-      dataToGraph['datapoints'].push(pointInTime)
-    })
-    console.log(dataToGraph)
+
+      entityData.forEach((graphPoint)=>{
+        if(graphPoint['name']===entityLabel){
+          let pointInTime = [parseInt(graphPoint['bytes']),(graphPoint['ts'] * 1000)]
+          dataToGraph['datapoints'].push(pointInTime)
+          dataToGraph['bytesTotal'] = dataToGraph['bytesTotal'] += parseInt(graphPoint['bytes'])
+        }
+
+      })
+
+    }
+
+    else if (entityChosen === 'srcHosts'){
+      entityData.forEach((graphPoint)=>{
+        if(graphPoint['src']===entityLabel){
+          let pointInTime = [parseInt(graphPoint['src_bytes']),(graphPoint['ts'] * 1000)]
+  
+          dataToGraph['datapoints'].push(pointInTime)
+          dataToGraph['bytesTotal'] = dataToGraph['bytesTotal'] += parseInt(graphPoint['src_bytes'])
+        }
+
+      })
+    }
+    else if (entityChosen === 'dstHosts'){
+      entityData.forEach((graphPoint)=>{
+        if(graphPoint['dst']===entityLabel){
+          let pointInTime = [parseInt(graphPoint['dst_bytes']),(graphPoint['ts'] * 1000)]
+  
+          dataToGraph['datapoints'].push(pointInTime)
+          dataToGraph['bytesTotal'] = dataToGraph['bytesTotal'] += parseInt(graphPoint['dst_bytes'])
+        }
+
+      })
+    }   
+
     return dataToGraph
-  }}
+  }
 
   formatData(scrutData, scrutParams, graphGranularity, options) {
  

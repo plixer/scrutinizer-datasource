@@ -77,6 +77,8 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           _this.target.filters = _this.target.filters;
           _this.target.dns = _this.target.resolveDNS;
           _this.target.granularity = _this.target.granularity || 'Select Granularity';
+          _this.target.entity = _this.target.entity || 'Select Entity';
+          _this.target.entityRows = _this.target.entityRows || 'Number of Results';
           _this.target.hideOthers = _this.target.showOthers;
 
           return _this;
@@ -99,6 +101,7 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
         }, {
           key: 'toggleEditorMode',
           value: function toggleEditorMode() {
+            console.log(query);
             this.target.rawQuery = !this.target.rawQuery;
           }
         }, {
@@ -123,6 +126,18 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
           value: function getDirection() {
 
             return this.datasource.reportDirections;
+          }
+        }, {
+          key: 'getEntities',
+          value: function getEntities() {
+
+            return this.datasource.entityTypes;
+          }
+        }, {
+          key: 'getEntitiesRows',
+          value: function getEntitiesRows() {
+
+            return this.datasource.entityRowCount;
           }
         }, {
           key: 'getGranularity',

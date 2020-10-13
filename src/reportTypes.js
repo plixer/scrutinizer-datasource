@@ -95,3 +95,57 @@ export const granularityOptions = [
     value: "720"
   }
 ];
+
+
+
+export const entityTypes = [
+  {
+    text: "Applications",
+    value: "applications"
+  },
+  {
+    text: "Source Hosts",
+    value: "srcHosts"
+  },
+  {
+    text: "Destination Hosts",
+    value: "dstHosts"
+  },
+  {
+    text: "Autonomous Systems",
+    value: "autonomous-systems"
+  },
+  {
+    text: "IP Groups",
+    value: "ipgroups"
+  },
+  {
+    text: "Countries",
+    value: "countries"
+  },
+  {
+    text: "Protocols",
+    value: "protocols"
+  }
+];
+
+
+export const entityRowCount = [
+  {
+    text: "Top 10",
+    value: "10"
+  },
+  {
+    text: "Top 25",
+    value: "25"
+  },  
+  {
+    text: "Top 50",
+    value: "50"
+  },
+  {
+    text: "Top 100",
+    value: "100"
+  },
+
+]
