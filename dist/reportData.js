@@ -359,6 +359,7 @@ System.register(["lodash"], function (_export, _context) {
           key: "getAllEntities",
           value: function getAllEntities(scrutInfo, entityName) {
 
+            //both of these comes back in the 'hosts' runmode. But I need something specific in order to pull time series for them. Will have to do the same for IpGroups, countries, and AS. 
             if (entityName === 'srcHosts' || entityName === 'dstHosts') {
               entityName = 'hosts';
             }
@@ -376,7 +377,10 @@ System.register(["lodash"], function (_export, _context) {
           key: "getEntityTimeseries",
           value: function getEntityTimeseries(scrutInfo, entity_id, options, query) {
 
+            console.log(query);
             var entityType = query.reportEntity;
+
+            //come from the Grafana time range selected. 
             var startTime = options["range"]["from"].unix();
             var endTime = options["range"]["to"].unix();
 
@@ -387,9 +391,10 @@ System.register(["lodash"], function (_export, _context) {
               dstIPGroups: "alarmsEntityIPGroup",
               srcHosts: "alarmsEntityHost",
               dstHosts: "alarmsEntityHost"
-            };
 
-            if (entityType === 'applications') {
+              // each of the entities takes sliglty different params to get the data back - so we create them depending on what the Entity_ID is. 
+
+            };if (entityType === 'applications') {
               return {
                 url: scrutInfo['url'],
                 method: "GET",
@@ -410,7 +415,6 @@ System.register(["lodash"], function (_export, _context) {
                   rm: rmTypes[entityType],
                   view: "load",
                   authToken: scrutInfo["authToken"],
-                  src_id: entity_id,
                   st: startTime,
                   et: endTime
                 }
@@ -536,7 +540,7 @@ System.register(["lodash"], function (_export, _context) {
             };
 
             var entityData = entity['data']['trend'];
-            console.log(entityChosen);
+
             if (entityChosen === 'applications') {
               entityData.forEach(function (graphPoint) {
 

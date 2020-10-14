@@ -310,11 +310,12 @@ createAdhocFilters(filterObject) {
 
     };
     
-    //params to figure out which interfaces exist for a device
+   
    
 
   getAllEntities(scrutInfo, entityName) {
 
+    //both of these comes back in the 'hosts' runmode. But I need something specific in order to pull time series for them. Will have to do the same for IpGroups, countries, and AS. 
     if (entityName === 'srcHosts' || entityName === 'dstHosts'){
       entityName = 'hosts'
     }
@@ -332,7 +333,11 @@ createAdhocFilters(filterObject) {
   
   getEntityTimeseries(scrutInfo,entity_id, options, query){
     
+
+    console.log(query)
     let entityType = query.reportEntity
+    
+    //come from the Grafana time range selected. 
     let startTime = options["range"]["from"].unix()
     let endTime = options["range"]["to"].unix()
     
@@ -345,6 +350,8 @@ createAdhocFilters(filterObject) {
       dstHosts:"alarmsEntityHost"
     }
    
+    // each of the entities takes sliglty different params to get the data back - so we create them depending on what the Entity_ID is. 
+
     if (entityType === 'applications')
     {
       return {
@@ -367,7 +374,6 @@ createAdhocFilters(filterObject) {
           rm: rmTypes[entityType],
           view: "load",
           authToken: scrutInfo["authToken"],
-          src_id:entity_id,
           st:startTime,
           et:endTime
         }
@@ -499,7 +505,7 @@ export class Handledata {
     }
 
     let entityData = entity['data']['trend']
-    console.log(entityChosen)
+ 
     if(entityChosen === 'applications'){ 
       entityData.forEach((graphPoint)=>{
 

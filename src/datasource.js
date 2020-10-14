@@ -338,34 +338,37 @@ export class GenericDatasource {
         //once all drop downs are selected, run the report.
         if (this.runReport == true) {
 
-          
-          
-
-          query.targets.forEach((query, index, array) => {
-
-            if(query.target === "entityView"){
-              let entityChosen = query.reportEntity
- 
-              let entityParams = makescrutJSON.getAllEntities(this.scrutInfo, entityChosen)
-              let entityDataArray = []
+           query.targets.forEach((query, index, array) => {
+             
+              if(query.target === "entityView"){
+                
+                let entityChosen = query.reportEntity
+                let entityParams = makescrutJSON.getAllEntities(this.scrutInfo, entityChosen)
+                let entityDataArray = []
               
 
-              this.doRequest(entityParams).then(response=>{
-            
-                let rowsToReturn = query['reportEntityRows']
-                if (rowsToReturn === 'Number of Results') {
-                   rowsToReturn = 10
-                }
-                let entityArray = response['data']['rows']
+                this.doRequest(entityParams).then(response=>{
 
-                entityArray.forEach((entity)=>{    
-          
+                  let rowsToReturn = query['reportEntityRows']
+                  //check if user has selected number of rows, if not set it to 10. 
+                  if (isNaN(parseInt(rowsToReturn))) {rowsToReturn = 10}
+                  
+                  //get back all of the entities from explore -> entities in Scrutinizer, story them in an array. 
+                  let entityArray = response['data']['rows']
+                  console.log(entityArray)
+                  //got through each entitiy and get time series data for it. 
+                  entityArray.forEach((entity)=>{
+                    
+                    //entityId is the raw name used when getting it's time series data
+                    let entityId = entity[0]['entity_id']
+                    //entity label is the text value that will be used int he grafana sisplay. 
+                    let entityLabel = entity[0]['label']
 
-                  let entityId = entity[0]['entity_id']
-                  let entityLabel = entity[0]['label']
-                  let entityTimeSeries = makescrutJSON.getEntityTimeseries(this.scrutInfo,entityId, options, query)
+                    //params needed to get the time series for a entity. 
+                    let entityTimeSeries = makescrutJSON.getEntityTimeseries(this.scrutInfo,entityId, options, query)
    
-                  this.doRequest(entityTimeSeries).then((entityData)=>{
+                    //make the request for each entities timeseries. 
+                    this.doRequest(entityTimeSeries).then((entityData)=>{
                           
                       let graphEntity = dataHandler.formatEntityData(entityData, entityLabel, entityChosen)
                       entityDataArray.push(graphEntity)
@@ -376,7 +379,7 @@ export class GenericDatasource {
                         })
                         numberOfQueries++;
                         if (numberOfQueries === array.length) {
-                          console.log(entityDataArray)
+
                           return resolve({ data: entityDataArray.slice(0,rowsToReturn) })
                         }
                       

@@ -335,25 +335,34 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                   query.targets.forEach(function (query, index, array) {
 
                     if (query.target === "entityView") {
-                      var entityChosen = query.reportEntity;
 
+                      var entityChosen = query.reportEntity;
                       var entityParams = makescrutJSON.getAllEntities(_this.scrutInfo, entityChosen);
                       var entityDataArray = [];
 
                       _this.doRequest(entityParams).then(function (response) {
 
                         var rowsToReturn = query['reportEntityRows'];
-                        if (rowsToReturn === 'Number of Results') {
+                        //check if user has selected number of rows, if not set it to 10. 
+                        if (isNaN(parseInt(rowsToReturn))) {
                           rowsToReturn = 10;
                         }
-                        var entityArray = response['data']['rows'];
 
+                        //get back all of the entities from explore -> entities in Scrutinizer, story them in an array. 
+                        var entityArray = response['data']['rows'];
+                        console.log(entityArray);
+                        //got through each entitiy and get time series data for it. 
                         entityArray.forEach(function (entity) {
 
+                          //entityId is the raw name used when getting it's time series data
                           var entityId = entity[0]['entity_id'];
+                          //entity label is the text value that will be used int he grafana sisplay. 
                           var entityLabel = entity[0]['label'];
+
+                          //params needed to get the time series for a entity. 
                           var entityTimeSeries = makescrutJSON.getEntityTimeseries(_this.scrutInfo, entityId, options, query);
 
+                          //make the request for each entities timeseries. 
                           _this.doRequest(entityTimeSeries).then(function (entityData) {
 
                             var graphEntity = dataHandler.formatEntityData(entityData, entityLabel, entityChosen);
@@ -365,7 +374,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                               });
                               numberOfQueries++;
                               if (numberOfQueries === array.length) {
-                                console.log(entityDataArray);
+
                                 return resolve({ data: entityDataArray.slice(0, rowsToReturn) });
                               }
                             }
