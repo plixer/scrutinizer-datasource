@@ -54,6 +54,7 @@ export class GenericDatasource {
 
   query(options) {
 
+
     //store number of queries being run, make sure to run a Scrutinizer request for each query made.
     let numberOfQueries = 0;
     //data sent up into this list, it's returned at end.
@@ -62,6 +63,7 @@ export class GenericDatasource {
     this.runReport = false;
     //takes the query and stores it to a variable
     var query = this.buildQueryParameters(options);
+
     //save the query to this, so it can be accessed by other methods.
     this.liveQuery = query;
     query.targets = query.targets.filter(t => !t.hide);

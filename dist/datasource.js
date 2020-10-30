@@ -112,6 +112,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             this.runReport = false;
             //takes the query and stores it to a variable
             var query = this.buildQueryParameters(options);
+
             //save the query to this, so it can be accessed by other methods.
             this.liveQuery = query;
             query.targets = query.targets.filter(function (t) {

@@ -377,7 +377,6 @@ System.register(["lodash"], function (_export, _context) {
           key: "getEntityTimeseries",
           value: function getEntityTimeseries(scrutInfo, entity_id, options, query) {
 
-            console.log(query);
             var entityType = query.reportEntity;
 
             //come from the Grafana time range selected. 
@@ -408,6 +407,7 @@ System.register(["lodash"], function (_export, _context) {
                 }
               };
             } else if (entityType === 'protocols') {
+              //protocals is a bit wierd, there isn't a way to specify a specific one, so you get them all back and figure it out later. 
               return {
                 url: scrutInfo['url'],
                 method: "GET",
