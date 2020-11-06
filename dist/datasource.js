@@ -3,7 +3,7 @@
 System.register(["lodash", "./reportData", "./reportTypes"], function (_export, _context) {
   "use strict";
 
-  var _, ScrutinizerJSON, Handledata, reportTypes, reportDirection, displayOptions, filterTypes, granularityOptions, _extends, _createClass, makescrutJSON, dataHandler, GenericDatasource;
+  var _, filter, ScrutinizerJSON, Handledata, AdhocHandler, reportTypes, reportDirection, displayOptions, filterTypes, granularityOptions, resolveDNS, _extends, _createClass, makescrutJSON, dataHandler, adhocHandler, GenericDatasource;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -14,15 +14,18 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
   return {
     setters: [function (_lodash) {
       _ = _lodash.default;
+      filter = _lodash.filter;
     }, function (_reportData) {
       ScrutinizerJSON = _reportData.ScrutinizerJSON;
       Handledata = _reportData.Handledata;
+      AdhocHandler = _reportData.AdhocHandler;
     }, function (_reportTypes) {
       reportTypes = _reportTypes.reportTypes;
       reportDirection = _reportTypes.reportDirection;
       displayOptions = _reportTypes.displayOptions;
       filterTypes = _reportTypes.filterTypes;
       granularityOptions = _reportTypes.granularityOptions;
+      resolveDNS = _reportTypes.resolveDNS;
     }],
     execute: function () {
       _extends = Object.assign || function (target) {
@@ -59,6 +62,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
       makescrutJSON = new ScrutinizerJSON();
       dataHandler = new Handledata();
+      adhocHandler = new AdhocHandler();
 
       _export("GenericDatasource", GenericDatasource = function () {
         function GenericDatasource(instanceSettings, $q, backendSrv, templateSrv) {
@@ -73,6 +77,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
           this.reportDirections = reportDirection;
           this.granularityOptions = granularityOptions;
           this.displayOptions = displayOptions;
+          this.resolveDNS = resolveDNS;
           this.withCredentials = instanceSettings.withCredentials;
           this.liveQuery = "";
           this.headers = { "Content-Type": "application/json" };
@@ -128,36 +133,26 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             var filterTypes = this.filterTypes.map(function (filter) {
               return filter["text"];
             });
-            var filterObject = {
-              sourceIp: [],
-              exporterDetails: [],
-              exporters: [],
-              ports: [],
-              destIp: []
-            };
-            if (query.adhocFilters.length > 0) {
-              query.adhocFilters.forEach(function (filter) {
-                if (!filterTypes.includes(filter["key"])) {
-                  filterObject.exporters.push(filter["key"]);
-                } else {
-                  _this.filterTypes.forEach(function (filterType) {
-                    if (filterType["text"] === filter["key"]) {
-                      var filterKey = filterType["value"];
-                      var filterValue = filter["value"];
-                      filterObject[filterKey].push(filterValue);
-                    }
-                  });
-                }
-              });
-            }
+
+            var filterObject = adhocHandler.createObject(query, filterTypes, this.filterTypes);
+
+            query.resolveDNS = null;
             return new Promise(function (resolve, reject) {
+
               //this exporter count is compared to the number of exporters to verify we have loops threw everything before returning.
               var exporterCount = 0;
               var numberofExporters = 0;
 
+              //all the ability to toggle DNS resolve for Adhoc Filters. 
+              if (filterObject.resolve !== null) {
+                query['resolveDNS'] = filterObject.resolve;
+              }
+
               if (query.adhocFilters.length > 0) {
+
                 query.adhocFilters.forEach(function (filter) {
-                  //if there is an exporter passed in the adhoc filter.
+
+                  //if there is an exporter passed in the adhoc filter
                   if (filterObject.exporters.length > 0 && !filterTypes.includes(filter["key"])) {
 
                     numberofExporters++;
@@ -169,6 +164,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                     _this.doRequest(adhocParams).then(function (exporter_details) {
 
                       var exporterIpFound = void 0;
+
                       if (exporter_details.data.results.length > 0) {
                         exporterIpFound = exporter_details.data.results[0].exporter_ip;
                       } else if (filter['key'] === "All Exporters") {
@@ -181,6 +177,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                       var interfaceParams = makescrutJSON.interfaceJSON(_this.scrutInfo, exporterIpFound);
 
                       _this.doRequest(interfaceParams).then(function (interfaceDetails) {
+
                         var interfaceList = interfaceDetails["data"]["rows"];
 
                         //for each interface that belongs to a device, we want to compare it against the one selected in grafana. If it matched we can add it to the filters
@@ -193,13 +190,23 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                             interfaceId: "ALL"
                           });
                         } else if (filter["key"] === "Device Group") {
-                          filterObject.exporterDetails.push({
-                            exporterName: filter["key"],
-                            exporterIp: "GROUP",
-                            interfaceName: filter["value"],
-                            interfaceId: interfaceList[0][8]['id'].toString()
+
+                          var chosenGroup = filter['value'];
+
+                          interfaceList.forEach(function (individualGroup) {
+                            var groupName = individualGroup[3]['label'];
+                            var groupId = individualGroup[8]['id'];
+                            if (chosenGroup === groupName) {
+                              filterObject.exporterDetails.push({
+                                exporterName: filter["key"],
+                                exporterIp: "GROUP",
+                                interfaceName: filter["value"],
+                                interfaceId: groupId.toString()
+                              });
+                            }
                           });
                         } else {
+
                           interfaceList.forEach(function (exporterInterface) {
                             var interfaceID = exporterInterface[5].filterDrag.searchStr;
                             var interfaceName = exporterInterface[5]["label"];
@@ -220,32 +227,43 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                         //we have now looped through all the exporters in the filters.
                         if (exporterCount === numberofExporters) {
 
-                          //created the filters we need to pass into each gadget on the dashboard.
-                          var reportFilter = makescrutJSON.createAdhocFilters(filterObject);
+                          query.targets.forEach(function (singleQuery, index, array) {
 
-                          //run a query for each gadget on the dashboard.
-                          query.targets.forEach(function (eachQuery, index, array) {
+                            _this.filters = makescrutJSON.createAdhocFilters(filterObject);
 
-                            var scrutParams = makescrutJSON.createFilters(_this.scrutInfo, options, reportFilter, eachQuery);
+                            var scrutParams = makescrutJSON.createParams(_this.scrutInfo, options, singleQuery, _this.filters);
 
-                            var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams, eachQuery);
-                            //find out what interval the data is in, we need to use this later to normalize the graphs.
+                            //figure out the intervale time.
+                            var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams, singleQuery, filterObject);
                             _this.doRequest(params).then(function (response) {
+
+                              //store interval here.
 
                               var graphGranularity = response.data["report_object"].graphView.graphGranularity.seconds;
 
                               //set up JSON to go to Scrutinizer API
-                              var params = makescrutJSON.reportJSON(_this.scrutInfo, scrutParams);
-                              //request for report data made to scrutinizer
-                              _this.doRequest(params).then(function (response) {
 
-                                //data organized into how Grafana expects it.
-                                var formatedData = dataHandler.formatData(response.data, scrutParams, graphGranularity, query);
+
+                              //add adhoc filters to exhisting filters.
+
+                              var merged = _extends({}, _this.filters, scrutParams["scrutFilters"]);
+
+                              scrutParams.scrutFilters = merged;
+                              var params = makescrutJSON.reportJSON(_this.scrutInfo, scrutParams, filterObject);
+                              _this.doRequest(params).then(function (response) {
+                                var formatedData = dataHandler.formatData(response.data, scrutParams, graphGranularity, singleQuery, query);
 
                                 var noOthers = void 0;
-                                //add ability to filter out other traffic if desired. 
 
-                                if (query.hideOthers) {
+                                // this will override individual gadgets, assumes that adhoc filter is set for show others. 
+                                if (filterObject.others === true) {
+                                  singleQuery.hideOthers = false;
+                                } else if (filterObject.others === false) {
+                                  singleQuery.hideOthers = true;
+                                }
+
+                                //This is done on the individual gadget level, it assumes no adhoc filter for show others was passed. 
+                                if (singleQuery.hideOthers) {
                                   noOthers = formatedData.filter(function (data) {
                                     return data['target'] != 'Other';
                                   });
@@ -254,8 +272,9 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                                   datatoGraph.push(formatedData);
                                 }
                                 datatoGraph = [].concat.apply([], datatoGraph);
+
                                 numberOfQueries++;
-                                //make sure we have gone through each query in a gadget.
+                                //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
                                 if (numberOfQueries === array.length) {
 
                                   return resolve({ data: datatoGraph });
@@ -267,12 +286,14 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                       });
                     });
                   }
-                  //if there is not an exporter passed in t e filter.
+                  //if there is not an exporter or Group passed in the filter.
                   else if (filterObject.exporters.length === 0) {
-                      query.targets.forEach(function (query, index, array) {
-                        var scrutParams = makescrutJSON.createParams(_this.scrutInfo, options, query);
+
+                      query.targets.forEach(function (singleQuery, index, array) {
+
+                        var scrutParams = makescrutJSON.createParams(_this.scrutInfo, options, singleQuery);
                         //figure out the intervale time.
-                        var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams, query);
+                        var params = makescrutJSON.findtimeJSON(_this.scrutInfo, scrutParams, singleQuery, filterObject);
                         _this.doRequest(params).then(function (response) {
 
                           //store interval here.
@@ -285,14 +306,21 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                           var merged = _extends({}, _this.filters, scrutParams["scrutFilters"]);
 
                           scrutParams.scrutFilters = merged;
-                          var params = makescrutJSON.reportJSON(_this.scrutInfo, scrutParams);
+                          var params = makescrutJSON.reportJSON(_this.scrutInfo, scrutParams, filterObject);
                           _this.doRequest(params).then(function (response) {
-                            var formatedData = dataHandler.formatData(response.data, scrutParams, graphGranularity, query);
+                            var formatedData = dataHandler.formatData(response.data, scrutParams, graphGranularity, singleQuery, query);
 
                             var noOthers = void 0;
 
-                            //add ability to filter out other traffic if desired. 
-                            if (query.hideOthers) {
+                            // this will override individual gadgets, assumes that adhoc filter is set for show others. 
+                            if (filterObject.others === true) {
+                              singleQuery.hideOthers = false;
+                            } else if (filterObject.others === false) {
+                              singleQuery.hideOthers = true;
+                            }
+
+                            //This is done on the individual gadget level, it assumes no adhoc filter for show others was passed. 
+                            if (singleQuery.hideOthers) {
                               noOthers = formatedData.filter(function (data) {
                                 return data['target'] != 'Other';
                               });
@@ -532,6 +560,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
             var _this4 = this;
 
             if (options.key != "Device Group") {
+
               var exporterParams = makescrutJSON.findExporter(this.scrutInfo, options.key);
               var interfaces = [{ text: "All Interfaces" }];
 
@@ -606,7 +635,7 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
 
             var params = makescrutJSON.exporterJSON(this.scrutInfo);
             return this.doRequest(params).then(function (response) {
-              var exporterList = [{ text: "All Exporters" }, { text: "Device Group" }, { text: "Source IP Filter" }, { text: "Add Port Filter" }, { text: "Destination IP Filter" }];
+              var exporterList = [{ text: "All Exporters" }, { text: "Device Group" }, { text: "Source IP Filter" }, { text: "Add Port Filter" }, { text: "Destination IP Filter" }, { text: "Show Others" }, { text: "Select Granularity" }, { text: "Resolve DNS" }];
               for (var i = 0; i < response.data.length; i++) {
                 exporterList.push({
                   text: response.data[i]["name"],
@@ -649,6 +678,22 @@ System.register(["lodash", "./reportData", "./reportTypes"], function (_export, 
                 return new Promise(function (resolve, reject) {
                   resolve([{ 'text': 'All Interfaces',
                     'value': 'All Interfaces' }]);
+                });
+              case "Show Others":
+                return new Promise(function (resolve, reject) {
+                  resolve([{ 'text': 'Yes',
+                    'value': true }, { 'text': 'No',
+                    'value': false }]);
+                });
+
+              case "Select Granularity":
+                return new Promise(function (resolve, reject) {
+                  resolve(_this8.granularityOptions);
+                });
+
+              case "Resolve DNS":
+                return new Promise(function (resolve, reject) {
+                  resolve(_this8.resolveDNS);
                 });
               default:
                 return new Promise(function (resolve, reject) {

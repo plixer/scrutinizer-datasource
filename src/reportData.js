@@ -25,7 +25,8 @@ export class ScrutinizerJSON {
 
   }
 // used for single query
-  createParams (scrut, options, query) {
+  createParams (scrut, options, query, adhocFilters = null) {
+
 
     let selectedGranularity = query.reportGranularity
 
@@ -40,33 +41,43 @@ export class ScrutinizerJSON {
     let scrutFilters;
     let exporterInterface;
     let scrutDisplay;
-    if (reportInterface === "allInterfaces") {
-      exporterInterface = "_ALL";
-    } else {
-      exporterInterface = reportInterface;
-    }
 
-    //  if user wants all devices, then they are defualted to all interfaces
-    if (target === "allExporters") {
-      scrutFilters = {
-        sdfDips_0: `in_GROUP_ALL`
-      };
-    } else if (target === "deviceGroup") {
-      scrutFilters = {
-        sdfDips_0: `in_GROUP_${exporterInterface}`
-      };
-    } else {
-      // if user wants a specific device, they can either have ALL interfaces, or a specific interface
-      if (exporterInterface === "_ALL") {
+    // if there are adhoc filters for a device group / exporter user it. Otherwise dont. 
+    if (adhocFilters !== null) {
+      scrutFilters = adhocFilters
+    }else {
+      if (reportInterface === "allInterfaces") {
+        exporterInterface = "_ALL";
+      } else {
+        exporterInterface = reportInterface;
+      }
+  
+      //  if user wants all devices, then they are defualted to all interfaces
+      if (target === "allExporters") {
         scrutFilters = {
-          sdfDips_0: `in_${target}_ALL`
+          sdfDips_0: `in_GROUP_ALL`
+        };
+      } else if (target === "deviceGroup") {
+        scrutFilters = {
+          sdfDips_0: `in_GROUP_${exporterInterface}`
         };
       } else {
-        scrutFilters = {
-          sdfDips_0: `in_${target}_${target}-${exporterInterface}`
-        };
+        // if user wants a specific device, they can either have ALL interfaces, or a specific interface
+        if (exporterInterface === "_ALL") {
+          scrutFilters = {
+            sdfDips_0: `in_${target}_ALL`
+          };
+        } else {
+          scrutFilters = {
+            sdfDips_0: `in_${target}_${target}-${exporterInterface}`
+          };
+        }
       }
+
+
     }
+
+
 
     
     if (reportFilters !== "No Filter") {
@@ -107,6 +118,7 @@ export class ScrutinizerJSON {
 
 // cused to create filter object for adhoc queries
 createAdhocFilters(filterObject) {
+
 
   let reportFilters = {};
 
@@ -153,6 +165,8 @@ createAdhocFilters(filterObject) {
 
   return reportFilters;
 }
+
+
   
   authJson(scrutInfo){
     return {
@@ -196,10 +210,17 @@ createAdhocFilters(filterObject) {
     };
   };
 
-  findtimeJSON(scrutInfo,scrutParams,query) {
+  findtimeJSON(scrutInfo,scrutParams,query, filterObject = null) {
 
     let selectedGranularity = query.reportGranularity
+    if (filterObject){
+      if (filterObject.granularity){
+        selectedGranularity = filterObject.granularity
+      }
+      
+    }
 
+  
     if(!Number.isInteger(parseInt(selectedGranularity))) {
       selectedGranularity = 'auto'
     }
@@ -244,8 +265,7 @@ createAdhocFilters(filterObject) {
   };
 
   interfaceJSON(scrutInfo, ipAddress) {
- 
-    
+
     if(ipAddress['key'] ==="Device Group"){
       let groupName = ipAddress['value']
       return {
@@ -314,9 +334,20 @@ createAdhocFilters(filterObject) {
    
   
 
-  reportJSON(scrutInfo, scrutParams) {
+  reportJSON(scrutInfo, scrutParams, filterObject = null) {
 
+    
+    
     let selectedGranularity = scrutParams.selectedGranularity
+ 
+    if (filterObject){
+      if (filterObject.granularity !== null){
+        selectedGranularity = filterObject.granularity
+      }
+      
+    }
+ 
+
     //returning report params to be passed into request
     return {
       url:scrutInfo['url'],
@@ -382,16 +413,29 @@ export class Handledata {
     };
   }
 
-  formatData(scrutData, scrutParams, graphGranularity, options) {
- 
+  formatData(scrutData, scrutParams, graphGranularity, options, query=null) {
+
+    let granularityChosen = graphGranularity
     //check if DNS resolve is on. 
+
+
     let dnsResolve = options.reportDNS
 
+    if(query !== null){
+     
+    
+      if(query.resolveDNS !== null ){
+      
+        dnsResolve = query.resolveDNS
+      }
+    }
 
-    let graphRes = parseInt(graphGranularity) / 60
+   
+    let graphRes = parseInt(granularityChosen) / 60
 
     let displayValue;
 
+  
     if (scrutParams.scrutDisplay["display"] === "custom_interfacepercent") {
       displayValue = "percent";
     } else {
@@ -483,5 +527,91 @@ export class Handledata {
     return datatoGraph
     
   }
+
+  formatOthers(formatedData){
+
+
+  }
+
 }
 
+
+export class AdhocHandler {
+
+
+  createObject(query, filterTypes, filters) {
+
+
+
+
+    let filterObject = {
+      sourceIp: [],
+      exporterDetails: [],
+      exporters: [],
+      ports: [],
+      destIp: [],
+      others:null,
+      granularity:null,
+      resolve:null
+    };
+    
+    
+    query.adhocFilters.forEach(filter => {
+      if (!filterTypes.includes(filter["key"])) {filterObject.exporters.push(filter["key"]);} 
+      else if (filter["key"] === "Select Granularity"){
+          let granularyValue = this.granularityTransform(filter['value'])
+          filterObject.granularity = granularyValue} 
+      else if (filter["key"] === "Show Others"){
+          let showOthers = this.othersTransform(filter['value'])
+          filterObject.others = showOthers
+        }
+      else if (filter["key"] === "Resolve DNS"){
+        let resolveDNS = this.othersTransform(filter['value'])
+        filterObject.resolve = resolveDNS
+      }
+      else{
+        filters.forEach(filterType => {
+          if (filterType["text"] === filter["key"]) {
+            let filterKey = filterType["value"];
+            let filterValue = filter["value"];
+            filterObject[filterKey].push(filterValue);
+          }
+         });
+       }
+    });
+
+
+  return filterObject
+  }
+
+granularityTransform(granularity){
+
+  switch (granularity) {
+    case "Auto":
+      return "auto"
+    case "1 Minute":
+      return "1"
+    case "5 Minute":
+      return "5"
+    case "30 Minute":
+      return "30"
+    case "2 Hour":
+      return "120"
+    case "12 Hour":
+      return "720"
+  }
+}
+
+
+othersTransform(showValue) {
+  switch (showValue) {
+    case "No":
+      return false
+    case "Yes":
+      return true
+    }
+
+  }
+
+
+}

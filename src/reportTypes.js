@@ -64,7 +64,19 @@ export const filterTypes = [
   {
     text: "Add Port Filter",
     value:"ports"
-  }
+  },
+  {
+    text: "Show Others",
+    value:"others"
+  },
+  {
+    text: "Select Granularity",
+    value:"granularity"
+  },
+  {
+    text: "Resolve DNS",
+    value:"resolve"
+  },
 ]
 
 
@@ -95,3 +107,16 @@ export const granularityOptions = [
     value: "720"
   }
 ];
+
+
+export const resolveDNS = [
+  {
+    text: "Yes",
+    value: true
+  },
+  {
+    text: "No",
+    value: false
+  },
+
+]

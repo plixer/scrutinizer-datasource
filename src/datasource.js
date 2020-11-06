@@ -1,15 +1,17 @@
-import _ from "lodash";
-import { ScrutinizerJSON, Handledata } from "./reportData";
+import _, { filter } from "lodash";
+import { ScrutinizerJSON, Handledata, AdhocHandler } from "./reportData";
 import {
   reportTypes,
   reportDirection,
   displayOptions,
   filterTypes,
-  granularityOptions
+  granularityOptions,
+  resolveDNS
 } from "./reportTypes";
 
 let makescrutJSON = new ScrutinizerJSON();
 let dataHandler = new Handledata();
+let adhocHandler = new AdhocHandler();
 
 export class GenericDatasource {
   constructor(instanceSettings, $q, backendSrv, templateSrv) {
@@ -22,6 +24,7 @@ export class GenericDatasource {
     this.reportDirections = reportDirection;
     this.granularityOptions = granularityOptions;
     this.displayOptions = displayOptions;
+    this.resolveDNS = resolveDNS;
     this.withCredentials = instanceSettings.withCredentials;
     this.liveQuery = "";
     this.headers = { "Content-Type": "application/json" };
@@ -50,7 +53,7 @@ export class GenericDatasource {
 
   query(options) {
 
-
+    
     //store number of queries being run, make sure to run a Scrutinizer request for each query made.
     let numberOfQueries = 0;
     //data sent up into this list, it's returned at end.
@@ -71,40 +74,33 @@ export class GenericDatasource {
     } else {
       query.adhocFilters = [];
     }
-
+ 
     let checkStart = query.targets.length - 1;
     //counter is used to keep track of number of exporters. This matters for creating the filter ojects
     let filterTypes = this.filterTypes.map(filter => filter["text"]);
-    let filterObject = {
-      sourceIp: [],
-      exporterDetails: [],
-      exporters: [],
-      ports: [],
-      destIp: []
-    };
-    if (query.adhocFilters.length > 0) {
-      query.adhocFilters.forEach(filter => {
-        if (!filterTypes.includes(filter["key"])) {
-          filterObject.exporters.push(filter["key"]);
-        } else {
-          this.filterTypes.forEach(filterType => {
-            if (filterType["text"] === filter["key"]) {
-              let filterKey = filterType["value"];
-              let filterValue = filter["value"];
-              filterObject[filterKey].push(filterValue);
-            }
-          });
-        }
-      });
-    }
+
+    let filterObject = adhocHandler.createObject(query, filterTypes, this.filterTypes)
+
+    query.resolveDNS = null
     return new Promise((resolve, reject) => {
+
       //this exporter count is compared to the number of exporters to verify we have loops threw everything before returning.
       let exporterCount = 0;
       let numberofExporters = 0;
 
+      //all the ability to toggle DNS resolve for Adhoc Filters. 
+      if(filterObject.resolve !== null) {
+        query['resolveDNS'] = filterObject.resolve
+      }
+
+
+
       if (query.adhocFilters.length > 0) {
+
         query.adhocFilters.forEach(filter => {
-          //if there is an exporter passed in the adhoc filter.
+
+
+          //if there is an exporter passed in the adhoc filter
           if (
             filterObject.exporters.length > 0 &&
             !filterTypes.includes(filter["key"])
@@ -114,15 +110,17 @@ export class GenericDatasource {
             numberofExporters++;
 
             //in some cases we will be passed the DNS/SNMP name of an exporter, here we convert it to an IP address needed for final filter.
-            
+
             let adhocParams = makescrutJSON.findExporter(
               this.scrutInfo,
               filter["key"]
             );
-
+            
             this.doRequest(adhocParams).then(exporter_details => {
+             
          
               let exporterIpFound
+
               if (exporter_details.data.results.length >0){
                 exporterIpFound = exporter_details.data.results[0].exporter_ip;
               } else if (filter['key'] === "All Exporters"){
@@ -132,6 +130,7 @@ export class GenericDatasource {
               }
              
 
+  
               //need to find the interface ID for the interface passed to Scrutinizer.
               let interfaceParams = makescrutJSON.interfaceJSON(
                 this.scrutInfo,
@@ -139,7 +138,10 @@ export class GenericDatasource {
               );
 
               this.doRequest(interfaceParams).then(interfaceDetails => {
+  
+                
                 let interfaceList = interfaceDetails["data"]["rows"];
+               
 
                 //for each interface that belongs to a device, we want to compare it against the one selected in grafana. If it matched we can add it to the filters
         
@@ -151,14 +153,26 @@ export class GenericDatasource {
                     interfaceId: "ALL"
                   });
                 } else if(filter["key"] === "Device Group"){
-                  filterObject.exporterDetails.push({
-                    exporterName: filter["key"],
-                    exporterIp: "GROUP",
-                    interfaceName: filter["value"],
-                    interfaceId: interfaceList[0][8]['id'].toString()
+
+                  let chosenGroup = filter['value']
+
+                  interfaceList.forEach((individualGroup)=>{
+                    let groupName = individualGroup[3]['label']
+                    let groupId = individualGroup[8]['id']
+                    if(chosenGroup === groupName) {
+                      filterObject.exporterDetails.push({
+                        exporterName: filter["key"],
+                        exporterIp: "GROUP",
+                        interfaceName: filter["value"],
+                        interfaceId: groupId.toString()
+                      })
+                    }
                   })
+                    
+   
                 }
                 else{
+        
                   interfaceList.forEach(exporterInterface => {
                     let interfaceID = exporterInterface[5].filterDrag.searchStr;
                     let interfaceName = exporterInterface[5]["label"];
@@ -178,54 +192,70 @@ export class GenericDatasource {
                 exporterCount++;
                 //we have now looped through all the exporters in the filters.
                 if (exporterCount === numberofExporters) {
-                 
-                  //created the filters we need to pass into each gadget on the dashboard.
-                  let reportFilter = makescrutJSON.createAdhocFilters(
-                    filterObject
-                  );
-   
-                  //run a query for each gadget on the dashboard.
-                  query.targets.forEach((eachQuery, index, array) => {
 
-                    let scrutParams = makescrutJSON.createFilters(
+                  query.targets.forEach((singleQuery, index, array) => {
+
+                    this.filters = makescrutJSON.createAdhocFilters(filterObject);
+               
+                    let scrutParams = makescrutJSON.createParams(
                       this.scrutInfo,
                       options,
-                      reportFilter,
-                      eachQuery
+                      singleQuery,
+                      this.filters
                     );
 
+                    //figure out the intervale time.
                     let params = makescrutJSON.findtimeJSON(
                       this.scrutInfo,
                       scrutParams,
-                      eachQuery
+                      singleQuery, 
+                      filterObject
                     );
-                    //find out what interval the data is in, we need to use this later to normalize the graphs.
                     this.doRequest(params).then(response => {
+                     
+                      //store interval here.
 
                       let graphGranularity =
-                      response.data["report_object"].graphView.graphGranularity.seconds;        
-
+                        response.data["report_object"].graphView.graphGranularity.seconds;        
+                      
+      
                       //set up JSON to go to Scrutinizer API
+                     
+
+                      //add adhoc filters to exhisting filters.
+               
+                      let merged = {
+                        ...this.filters,
+                        ...scrutParams["scrutFilters"]
+                      };
+       
+                      scrutParams.scrutFilters = merged;
                       let params = makescrutJSON.reportJSON(
                         this.scrutInfo,
-                        scrutParams
+                        scrutParams,
+                        filterObject
                       );
-                      //request for report data made to scrutinizer
                       this.doRequest(params).then(response => {
-
-                        
-                        //data organized into how Grafana expects it.
                         let formatedData = dataHandler.formatData(
                           response.data,
                           scrutParams,
-                          graphGranularity, 
+                          graphGranularity,
+                          singleQuery,
                           query
                         );
-
+                        
                         let noOthers;
-                        //add ability to filter out other traffic if desired. 
-
-                        if (query.hideOthers) {
+                       
+                        // this will override individual gadgets, assumes that adhoc filter is set for show others. 
+                        if (filterObject.others === true) {
+                          singleQuery.hideOthers = false
+                        } else if (filterObject.others === false) {
+                          singleQuery.hideOthers = true
+                        }
+      
+      
+                        //This is done on the individual gadget level, it assumes no adhoc filter for show others was passed. 
+                        if (singleQuery.hideOthers) {
                           noOthers = formatedData.filter((data)=>{
                             return data['target'] != 'Other'
                               })
@@ -234,10 +264,11 @@ export class GenericDatasource {
                           datatoGraph.push(formatedData);
                         }
                         datatoGraph = [].concat.apply([], datatoGraph);
+      
                         numberOfQueries++;
-                        //make sure we have gone through each query in a gadget.
+                        //incase user has multiple queries we want to make sure we have iterated through all of them before returning results.
                         if (numberOfQueries === array.length) {
-
+      
                           return resolve({ data: datatoGraph });
                         }
                       });
@@ -247,27 +278,31 @@ export class GenericDatasource {
               });
             });
           }
-          //if there is not an exporter passed in t e filter.
+          //if there is not an exporter or Group passed in the filter.
           else if (filterObject.exporters.length === 0) {
-            query.targets.forEach((query, index, array) => {
+
+            query.targets.forEach((singleQuery, index, array) => {
+ 
               let scrutParams = makescrutJSON.createParams(
                 this.scrutInfo,
                 options,
-                query
+                singleQuery
               );
               //figure out the intervale time.
               let params = makescrutJSON.findtimeJSON(
                 this.scrutInfo,
                 scrutParams,
-                query
+                singleQuery, 
+                filterObject
               );
               this.doRequest(params).then(response => {
                
                 //store interval here.
-
+               
                 let graphGranularity =
                   response.data["report_object"].graphView.graphGranularity.seconds;        
-  
+                
+
                 //set up JSON to go to Scrutinizer API
                 this.filters = makescrutJSON.createAdhocFilters(filterObject);
                 //add adhoc filters to exhisting filters.
@@ -275,24 +310,34 @@ export class GenericDatasource {
                   ...this.filters,
                   ...scrutParams["scrutFilters"]
                 };
-
+                
                 scrutParams.scrutFilters = merged;
                 let params = makescrutJSON.reportJSON(
                   this.scrutInfo,
-                  scrutParams
+                  scrutParams,
+                  filterObject
                 );
                 this.doRequest(params).then(response => {
                   let formatedData = dataHandler.formatData(
                     response.data,
                     scrutParams,
                     graphGranularity,
+                    singleQuery,
                     query
                   );
-
+                  
                   let noOthers;
+                 
+                  // this will override individual gadgets, assumes that adhoc filter is set for show others. 
+                  if (filterObject.others === true) {
+                    singleQuery.hideOthers = false
+                  } else if (filterObject.others === false) {
+                    singleQuery.hideOthers = true
+                  }
 
-                  //add ability to filter out other traffic if desired. 
-                  if (query.hideOthers) {
+
+                  //This is done on the individual gadget level, it assumes no adhoc filter for show others was passed. 
+                  if (singleQuery.hideOthers) {
                     noOthers = formatedData.filter((data)=>{
                       return data['target'] != 'Other'
                         })
@@ -327,7 +372,7 @@ export class GenericDatasource {
 
         //once all drop downs are selected, run the report.
         if (this.runReport == true) {
-          
+
           query.targets.forEach((query, index, array) => {
             let scrutParams = makescrutJSON.createParams(
               this.scrutInfo,
@@ -336,7 +381,6 @@ export class GenericDatasource {
             );
             //figure out the intervale time.
             let params = makescrutJSON.findtimeJSON(
-
               this.scrutInfo,
               scrutParams,
               query
@@ -428,11 +472,11 @@ export class GenericDatasource {
 
   findInterfaces(options, scope) {
 
-
+ 
     let query = this.liveQuery;
 
     if (query.targets) {
-
+  
       //determines which select you have clicked on.
       let selectedIP = scope.ctrl.target.target;
 
@@ -591,7 +635,9 @@ export class GenericDatasource {
 
   //used to figure out which interfaces to show for a paritcular exporter.
   HandleAdhocFilters(resolve, options) {
-    if (options.key !="Device Group"){
+
+    if (options.key !="Device Group" ){
+ 
       let exporterParams = makescrutJSON.findExporter(
         this.scrutInfo,
         options.key
@@ -681,7 +727,10 @@ export class GenericDatasource {
         { text: "Device Group" },
         { text: "Source IP Filter" },
         { text: "Add Port Filter" },
-        { text: "Destination IP Filter" }
+        { text: "Destination IP Filter" },
+        { text:"Show Others"},
+        { text:"Select Granularity"},
+        { text:"Resolve DNS"}
       ];
       for (let i = 0; i < response.data.length; i++) {
         exporterList.push({
@@ -704,7 +753,7 @@ export class GenericDatasource {
   getTagValues(options) {
 
 
-  
+
     switch (options.key) {
       case "Source IP Filter":
         return new Promise((resolve, reject) => {
@@ -723,6 +772,23 @@ export class GenericDatasource {
             resolve([{'text':'All Interfaces',
                       'value':'All Interfaces'}]);
           });
+      case "Show Others":
+        return new Promise((resolve, reject) => {
+          resolve([{'text':'Yes',
+                    'value':true},
+                    {'text':'No',
+                    'value':false}]);
+        });        
+
+        case "Select Granularity":
+          return new Promise((resolve, reject) => {
+            resolve(this.granularityOptions);
+          });
+          
+        case "Resolve DNS":
+            return new Promise((resolve, reject) => {
+              resolve(this.resolveDNS);
+            });   
       default:
         return new Promise((resolve, reject) => {
           this.HandleAdhocFilters(resolve, options);

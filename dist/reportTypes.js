@@ -3,7 +3,7 @@
 System.register([], function (_export, _context) {
   "use strict";
 
-  var reportTypes, reportDirection, displayOptions, filterTypes, granularityOptions;
+  var reportTypes, reportDirection, displayOptions, filterTypes, granularityOptions, resolveDNS;
   return {
     setters: [],
     execute: function () {
@@ -58,6 +58,15 @@ System.register([], function (_export, _context) {
       }, {
         text: "Add Port Filter",
         value: "ports"
+      }, {
+        text: "Show Others",
+        value: "others"
+      }, {
+        text: "Select Granularity",
+        value: "granularity"
+      }, {
+        text: "Resolve DNS",
+        value: "resolve"
       }]);
 
       _export("filterTypes", filterTypes);
@@ -83,6 +92,16 @@ System.register([], function (_export, _context) {
       }]);
 
       _export("granularityOptions", granularityOptions);
+
+      _export("resolveDNS", resolveDNS = [{
+        text: "Yes",
+        value: true
+      }, {
+        text: "No",
+        value: false
+      }]);
+
+      _export("resolveDNS", resolveDNS);
     }
   };
 });

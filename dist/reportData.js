@@ -3,7 +3,7 @@
 System.register(["lodash"], function (_export, _context) {
   "use strict";
 
-  var _, _createClass, ScrutinizerJSON, Handledata;
+  var _, _createClass, ScrutinizerJSON, Handledata, AdhocHandler;
 
   function _defineProperty(obj, key, value) {
     if (key in obj) {
@@ -82,6 +82,8 @@ System.register(["lodash"], function (_export, _context) {
         }, {
           key: "createParams",
           value: function createParams(scrut, options, query) {
+            var adhocFilters = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+
 
             var selectedGranularity = query.reportGranularity;
 
@@ -102,31 +104,37 @@ System.register(["lodash"], function (_export, _context) {
             var scrutFilters = void 0;
             var exporterInterface = void 0;
             var scrutDisplay = void 0;
-            if (reportInterface === "allInterfaces") {
-              exporterInterface = "_ALL";
-            } else {
-              exporterInterface = reportInterface;
-            }
 
-            //  if user wants all devices, then they are defualted to all interfaces
-            if (target === "allExporters") {
-              scrutFilters = {
-                sdfDips_0: "in_GROUP_ALL"
-              };
-            } else if (target === "deviceGroup") {
-              scrutFilters = {
-                sdfDips_0: "in_GROUP_" + exporterInterface
-              };
+            // if there are adhoc filters for a device group / exporter user it. Otherwise dont. 
+            if (adhocFilters !== null) {
+              scrutFilters = adhocFilters;
             } else {
-              // if user wants a specific device, they can either have ALL interfaces, or a specific interface
-              if (exporterInterface === "_ALL") {
+              if (reportInterface === "allInterfaces") {
+                exporterInterface = "_ALL";
+              } else {
+                exporterInterface = reportInterface;
+              }
+
+              //  if user wants all devices, then they are defualted to all interfaces
+              if (target === "allExporters") {
                 scrutFilters = {
-                  sdfDips_0: "in_" + target + "_ALL"
+                  sdfDips_0: "in_GROUP_ALL"
+                };
+              } else if (target === "deviceGroup") {
+                scrutFilters = {
+                  sdfDips_0: "in_GROUP_" + exporterInterface
                 };
               } else {
-                scrutFilters = {
-                  sdfDips_0: "in_" + target + "_" + target + "-" + exporterInterface
-                };
+                // if user wants a specific device, they can either have ALL interfaces, or a specific interface
+                if (exporterInterface === "_ALL") {
+                  scrutFilters = {
+                    sdfDips_0: "in_" + target + "_ALL"
+                  };
+                } else {
+                  scrutFilters = {
+                    sdfDips_0: "in_" + target + "_" + target + "-" + exporterInterface
+                  };
+                }
               }
             }
 
@@ -252,8 +260,15 @@ System.register(["lodash"], function (_export, _context) {
         }, {
           key: "findtimeJSON",
           value: function findtimeJSON(scrutInfo, scrutParams, query) {
+            var filterObject = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+
 
             var selectedGranularity = query.reportGranularity;
+            if (filterObject) {
+              if (filterObject.granularity) {
+                selectedGranularity = filterObject.granularity;
+              }
+            }
 
             if (!Number.isInteger(parseInt(selectedGranularity))) {
               selectedGranularity = 'auto';
@@ -358,8 +373,17 @@ System.register(["lodash"], function (_export, _context) {
         }, {
           key: "reportJSON",
           value: function reportJSON(scrutInfo, scrutParams) {
+            var filterObject = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+
 
             var selectedGranularity = scrutParams.selectedGranularity;
+
+            if (filterObject) {
+              if (filterObject.granularity !== null) {
+                selectedGranularity = filterObject.granularity;
+              }
+            }
+
             //returning report params to be passed into request
             return {
               url: scrutInfo['url'],
@@ -433,11 +457,24 @@ System.register(["lodash"], function (_export, _context) {
         _createClass(Handledata, [{
           key: "formatData",
           value: function formatData(scrutData, scrutParams, graphGranularity, options) {
+            var query = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : null;
 
+
+            var granularityChosen = graphGranularity;
             //check if DNS resolve is on. 
+
+
             var dnsResolve = options.reportDNS;
 
-            var graphRes = parseInt(graphGranularity) / 60;
+            if (query !== null) {
+
+              if (query.resolveDNS !== null) {
+
+                dnsResolve = query.resolveDNS;
+              }
+            }
+
+            var graphRes = parseInt(granularityChosen) / 60;
 
             var displayValue = void 0;
 
@@ -524,12 +561,97 @@ System.register(["lodash"], function (_export, _context) {
 
             return datatoGraph;
           }
+        }, {
+          key: "formatOthers",
+          value: function formatOthers(formatedData) {}
         }]);
 
         return Handledata;
       }());
 
       _export("Handledata", Handledata);
+
+      _export("AdhocHandler", AdhocHandler = function () {
+        function AdhocHandler() {
+          _classCallCheck(this, AdhocHandler);
+        }
+
+        _createClass(AdhocHandler, [{
+          key: "createObject",
+          value: function createObject(query, filterTypes, filters) {
+            var _this = this;
+
+            var filterObject = {
+              sourceIp: [],
+              exporterDetails: [],
+              exporters: [],
+              ports: [],
+              destIp: [],
+              others: null,
+              granularity: null,
+              resolve: null
+            };
+
+            query.adhocFilters.forEach(function (filter) {
+              if (!filterTypes.includes(filter["key"])) {
+                filterObject.exporters.push(filter["key"]);
+              } else if (filter["key"] === "Select Granularity") {
+                var granularyValue = _this.granularityTransform(filter['value']);
+                filterObject.granularity = granularyValue;
+              } else if (filter["key"] === "Show Others") {
+                var showOthers = _this.othersTransform(filter['value']);
+                filterObject.others = showOthers;
+              } else if (filter["key"] === "Resolve DNS") {
+                var resolveDNS = _this.othersTransform(filter['value']);
+                filterObject.resolve = resolveDNS;
+              } else {
+                filters.forEach(function (filterType) {
+                  if (filterType["text"] === filter["key"]) {
+                    var filterKey = filterType["value"];
+                    var filterValue = filter["value"];
+                    filterObject[filterKey].push(filterValue);
+                  }
+                });
+              }
+            });
+
+            return filterObject;
+          }
+        }, {
+          key: "granularityTransform",
+          value: function granularityTransform(granularity) {
+
+            switch (granularity) {
+              case "Auto":
+                return "auto";
+              case "1 Minute":
+                return "1";
+              case "5 Minute":
+                return "5";
+              case "30 Minute":
+                return "30";
+              case "2 Hour":
+                return "120";
+              case "12 Hour":
+                return "720";
+            }
+          }
+        }, {
+          key: "othersTransform",
+          value: function othersTransform(showValue) {
+            switch (showValue) {
+              case "No":
+                return false;
+              case "Yes":
+                return true;
+            }
+          }
+        }]);
+
+        return AdhocHandler;
+      }());
+
+      _export("AdhocHandler", AdhocHandler);
     }
   };
 });
